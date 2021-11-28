@@ -1,0 +1,232 @@
+\documentclass[a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{mathpazo}
+\usepackage[scaled]{helvet}
+\usepackage{courier}
+\usepackage[sf,bf]{titlesec}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{tabularx}
+
+\makeatletter
+\newenvironment{expl}{%
+  \begin{list}{}{%
+      \small\itshape%
+      \topsep\z@%
+      \listparindent0pt%\parindent%
+      \parsep0.75\baselineskip%\parskip%
+      \setlength{\leftmargin}{20mm}%
+      \setlength{\rightmargin}{20mm}%
+    }
+  \item[]}%
+  {\end{list}}
+\makeatother
+
+% Indiquez votre prénom (en minuscules) et votre nom (en majuscules)
+\title{Rapport de TP \\ Architecture des systèmes d'exploitation}
+\author{\underline{Prénom} \underline{NOM}}
+\date{Novembre 2021}
+
+\begin{document}
+
+\maketitle
+
+% Mettez une table des matières si votre rapport contient plus
+% de 3 pages ou si vous ne suivez pas le plan suggéré :
+%\tableofcontents
+
+% Dans votre rapport final, supprimez toutes les explications
+% (c'est-à-dire tous les environnements \begin{expl} ... \end{expl}).
+\begin{expl}
+  Ce document vous suggère une trame de rapport de TP.
+
+  Vous pouvez utiliser le source \LaTeX{} de ce document comme
+  base (voir également la cible \texttt{rapport.pdf} dans le fichier
+  \texttt{Makefile}), mais vous pouvez utiliser tout autre outil
+  de votre choix, à condition de rendre un rapport en PDF.
+\end{expl}
+
+\section{Introduction}
+
+\begin{expl}
+  Rappelez brièvement le sujet et esquissez les principes de votre
+  solution (une dizaine de lignes maximum).
+\end{expl}
+
+\section{Structure de données}
+
+\subsection{Structures de données partagées}\label{sec-shm}
+
+\begin{expl}
+  Décrivez ici la structure de votre segment de mémoire partagée,
+  ainsi que toutes les structures annexes que vous y utilisez. Pour
+  chaque donnée, indiquez son nom, sa nature (entier, sémaphore,
+  tableau de X...), sa valeur initiale, et décrivez en quelques
+  mots son usage.
+
+  Par exemple, si le vaccinodrome disposait d'un distributeur de gel
+  hydroalcoolique à l'usage des patients, on trouverait la description
+  suivante~:
+
+  \begin{tabularx}{\linewidth}{|l|l|l|X|}
+    \hline
+    % \multicolumn{4}{|l|}{Distributeur de gel
+    %   (\texttt{struct distr\_gelha})}
+    % \\ \hline
+    Champ & Type & Init & Description \\ \hline%
+    dg & distrib\_t & -- & distributeur (cf. documentation de
+    \texttt{libhygiene}) \\ \hline%
+    sm\_dg & asem\_t & 1 & sémaphore utilisé pour synchroniser l'accès
+    au distributeur \\ \hline%
+  \end{tabularx}
+
+  On considère que tout ce qui est décrit dans cette section existe
+  depuis la création du vaccinodrome jusqu'à sa fermeture.
+\end{expl}
+
+\subsection{Structures de données non partagées}
+
+\begin{expl}
+  Indiquez toutes les données conservées par les processus mais non
+  partagées. La forme est la même que dans la section précédente.
+  Précisez aussi à quel moment ces données sont créées et
+  initialisées.
+\end{expl}
+
+\section{Synchronisations}
+
+\begin{expl}
+  Chacune des sous-sections suivantes doit décrire un aspect de la
+  synchronisation. Elles ont toutes la même organisation, et doivent
+  contenir deux ou trois parties clairement délimitées.
+
+  \begin{enumerate}
+
+  \item La première partie décrit tous les objets impliqués dans la
+    synchronisation de l'accueil des patients dans le vaccinodrome. Il
+    s'agit des données «~normales~» (par exemple un entier) et des
+    sémaphores. Pour chacun de ces éléments, précisez si il est
+    rattaché au vaccinodrome globalement ou à un patient, ou encore à
+    un médecin. Par exemple, si le vaccinodrome était muni d'un
+    distributeur de gel hydroalcoolique grâce auxquels les patients
+    peuvent se nettoyer les mains, il faudrait mentionner~:
+
+    \begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+      \hline%
+      sm\_dg & asem\_t & le sémaphore représentant le nombre de
+      distributeurs \underline{du vaccinodrome} (voir
+      section~\ref{sec-shm}) \\ \hline%
+      monid & int & le nom %
+      \underline{\raisebox{0pt}[\height][0pt]{du patient}} \\ \hline%
+    \end{tabularx}
+
+  \item La seconde partie doit contenir un pseudo-code de ce
+    qu'exécute \emph{chaque} acteur impliqué (le patient, le médecin,
+    autres). Seuls les aspects importants doivent être présentés~:
+    opérations sur les sémaphores, affectation de valeurs aux
+    variables partagées... Le reste (par exemple les messages liés à
+    \texttt{DEBUG\_OUTPUT}) ne doivent pas apparaître ici. Dans
+    l'exemple des distributeurs de gel, le pseudo-code serait~:
+
+\begin{verbatim}
+// Ce code est exécuté par le patient
+P (sm_dg)
+se_laver_les_mains (monid)
+V (sm_dg)
+\end{verbatim}
+
+  \item La troisième partie contient toutes les remarques que vous
+    jugez pertinentes. Vous pouvez par exemple y préciser les
+    conditions de concurrence, ou les éventuelles limitations ou
+    propriétés remarquables de votre solution.
+
+    Dans l'exemple des distributeurs de gel, vous pourriez préciser
+    que vous avez pensé à implémenter à la place une attente limitée
+    dans le temps pour les patients qui portaient des gants en entrant
+    (en expliquant comment vous auriez fait), mais que cela aurait
+    compliqué le code pour un intérêt limité.
+  \end{enumerate}
+
+  Vous pouvez ajouter des sous-sections si vous avez d'autres
+  synchronisations importantes, ou fragmenter celles qui vous sont
+  proposées ci-dessous.
+\end{expl}
+
+
+\subsection{Arrivée d'un patient}\label{arrivee-patient}
+
+\begin{expl}
+  Expliquez dans cette sous-section, conformément aux indications
+  ci-dessus, tout ce qui se passe lorsqu'un patient arrive,
+  \emph{avant} qu'il interagisse avec un médecin (si le vaccinodrome
+  est ouvert) ou reparte. Mentionnez toutes les informations
+  partagées qui sont utilisées et toutes les synchronisations
+  nécessaires.
+\end{expl}
+
+\subsection{Arrivée d'un médecin}
+
+\begin{expl}
+  Expliquez dans cette sous-section tout ce qui se passe lorsqu'un
+  médecin arrive, \emph{avant} qu'il interagisse avec un patient.
+\end{expl}
+
+\subsection{Interactions entre patients et médecins}
+
+\begin{expl}
+  Expliquez ici comment patients et médecins sont «~mis en contact~».
+  Expliquez la stratégie que vous avez choisie, c'est-à-dire comment
+  1) soit un patient trouve un médecin dès qu'un médecin est
+  disponible, 2) soit un médecin trouve un patient dans la salle
+  d'attente. Expliquez également ce qui se passe entre le moment où un
+  médecin et un patient sont mis en contact, et le moment où le
+  patient vacciné peut quitter le vaccinodrome et le médecin s'occuper
+  d'un (éventuel) autre patient.
+\end{expl}
+
+\subsection{Fermeture du vaccinodrome}
+
+\begin{expl}
+  Expliquez les détails de ce que fait le programme \texttt{fermer}
+  (et seulement ce programme), y compris lorsqu'il reste des patients
+  et/ou des médecins.
+\end{expl}
+
+\subsection{Patients après fermeture}
+
+\begin{expl}
+  Expliquez ce qui se passe pour un patient assis dans la salle
+  d'attente après la fermeture. (Notez que le cas du patient qui
+  arrive \emph{après} la fermeture doit avoir été décrit dans la
+  section~\ref{arrivee-patient}.)
+\end{expl}
+
+\subsection{Médecins après fermeture}
+
+\begin{expl}
+  Expliquez ce qui se passe pour un médecin après la fermeture. (Le
+  cas du médecin qui arrive \emph{après} la fermeture doit avoir été
+  décrit dans la section~\ref{arrivee-patient}.)
+\end{expl}
+
+\section{Remarques sur l'implémentation}
+
+\begin{expl}
+  Placez ici toute remarque relative à vos choix d'implémentation (si
+  vous en avez). Par exemple~: si vous avez placé des temporisations
+  particulières pour vérifier que certains cas de concurrence étaient
+  gérés correctement, expliquez cela dans cette section. Toute autre
+  remarque qui aide à comprendre votre code est à placer ici.
+\end{expl}
+
+\section{Conclusion}
+
+\begin{expl}
+  Tirez les conclusions de votre projet~: limites de votre
+  implémentation, difficultés particulières, subtilités dont vous êtes
+  fiers, etc.
+\end{expl}
+
+\end{document}
