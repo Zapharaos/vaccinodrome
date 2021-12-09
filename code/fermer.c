@@ -12,6 +12,7 @@
 void fermer()
 {
     int fd = shm_open("/vaccinodrome", O_RDWR, 0666);
+    if(fd == -1) exit(EXIT_FAILURE);
 
     struct stat sb;
     if (fstat(fd, &sb) < 0)
@@ -20,8 +21,14 @@ void fermer()
     ftruncate(fd , sizeof(vaccinodrome_t));
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    // attendre que plus personne
+    // ferme
+    vac->statut = false;
 
+    // attendre que tout le monde soit rentré
+    asem_wait(&(vac->vide));
+
+    asem_destroy (&(vac->vide));
+    asem_destroy (&(vac->pat_vide));
     asem_destroy (&(vac->salle_attente));
 
     if(munmap(vac, sb.st_size) == -1)

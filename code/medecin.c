@@ -12,6 +12,7 @@
 void medecin()
 {
     int fd = shm_open("/vaccinodrome", O_RDWR, 0666);
+    if(fd == -1) exit(EXIT_FAILURE);
 
     struct stat sb;
     if (fstat(fd, &sb) < 0)
@@ -20,11 +21,27 @@ void medecin()
     ftruncate(fd , sizeof(vaccinodrome_t));
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    /* TO DO */ 
-
     // check si c'est fermé
+    if(vac->statut == false) return; //exit(EXIT_FAILURE);
 
-    // sleep(args->t);
+    // box id value = med_count
+    vac->med_count++;
+
+    while(vac->statut == true) // && vac->nb_patient > 0 ?? et si deux médecins accèdent en même temps au même patient ?
+    {
+        // récupérer un patient -> num aléatoire entre 0 et siege_count
+        // sleep(args->t);
+        // libérer un patient
+    }
+
+    asem_wait(&(vac->pat_vide)); // attend que tous les patients soit partis
+
+    vac->med_count--;
+
+    if(vac->med_count == 0) // signale que tous les médecins sont partis
+        asem_post(&(vac->vide));
+
+    return;
 }
 
 int main (int argc, char *argv [])

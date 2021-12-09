@@ -20,9 +20,14 @@ void ouvrir(int n, int m, int t)
     ftruncate(fd , sizeof(vaccinodrome_t*));
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t*), PROT_WRITE, MAP_SHARED, fd, 0);
 
+    vac->statut = true;
     vac->n = n;
     vac->m = m;
     vac->t = t;
+    vac->med_count = 0;
+    vac->pat_count = 0; // nombre de patient total ou nombre de patient dans les box ?
+    asem_init (&(vac->vide), "vide", 0, 0);
+    asem_init (&(vac->pat_vide), "pat_vide", 0, 0);
     asem_init (&(vac->salle_attente), "wait_room", 0, vac->n);
 }
 

@@ -22,8 +22,8 @@ void nettoyer()
     // ftruncate(fd , sizeof(vaccinodrome_t));
     // vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     
-    // vac->ouvert = false;
-    // asem_destroy (&(vac->statut));
+    // asem_destroy (&(vac->vide));
+    // asem_destroy (&(vac->pat_vide));
     // asem_destroy (&(vac->salle_attente));
 
     // if(munmap(vac, sb.st_size) == -1)
