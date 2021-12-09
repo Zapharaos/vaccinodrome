@@ -1,16 +1,29 @@
-// Fichier ouvrir.c à rédiger
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 
+#include <fcntl.h> // flags
+#include <sys/mman.h> // shm_open
+#include <unistd.h> // ftruncate
+#include <sys/stat.h> // fstat
+
 #include "shm.h"
 
 void ouvrir(int n, int m, int t)
 {
-    (void) n;
-    (void) m;
-    (void) t;
+    int fd = shm_open("/vaccinodrome", O_RDWR | O_EXCL | O_CREAT, 0666);
+
+    // vérifier qu'il existe pas déjà + TESTER ERRNO
+    if( fd == -1 ) raler("shm_open ouvrir");
+
+    ftruncate(fd , sizeof(vaccinodrome_t*));
+    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t*), PROT_WRITE, MAP_SHARED, fd, 0);
+
+    vac->n = n;
+    vac->m = m;
+    vac->t = t;
+    asem_init (&(vac->salle_attente), "wait_room", 0, vac->n);
 }
 
 int main (int argc, char *argv [])
