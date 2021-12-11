@@ -23,21 +23,22 @@ void patient(char *nom)
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     // check si fermé
-    if(vac->statut == false) exit(EXIT_FAILURE);
+    if(vac->status == FERME) exit(EXIT_FAILURE);
 
     // attend d'avoir une place de libre
     asem_wait(&(vac->salle_attente));
 
     // check si une place s'est libérée mais que le vaccinodrome a fermé entre temps
     // sinon wait avant 1er check si fermé
-    if(vac->statut == false)
+    if(vac->status == FERME)
     {
         asem_post(&(vac->salle_attente)); // libère la place, peut-être que d'autres sont dans le même cas
-        return;
+        exit(EXIT_FAILURE);
     }
 
-    asem_post(&(vac->vide));
-
+    // asem_post(&(vac->vide)); ?
+    
+    vac->salle_count++;
     vac->pat_count++; // nb patients global dans le vaccinodrome
     int id_patient;
 
@@ -57,6 +58,7 @@ void patient(char *nom)
     }
 
     asem_wait(&(vac->patient[id_patient].sem_pat)); // attend que medecin cherche patient
+    vac->salle_count--;
     asem_post(&(vac->salle_attente)); // libere place sale d'attente
 
     int id_medecin = vac->patient[id_patient].id_medecin;
@@ -70,7 +72,7 @@ void patient(char *nom)
     vac->patient[id_patient].status = LIBRE;
     fprintf(stdout, "P\n");
 
-    if(vac->statut == false && vac->pat_count == 0) // signale que tous les patients sont partis (quand ferme)
+    if(vac->status == FERME && vac->pat_count == 0) // signale que tous les patients sont partis (quand ferme)
         asem_post(&(vac->pat_vide));
 }
 

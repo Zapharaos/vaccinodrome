@@ -22,10 +22,10 @@ void fermer()
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     // ferme
-    vac->statut = false;
+    vac->status = FERME;
 
-    // attendre que tout le monde soit rentré
-    asem_wait(&(vac->vide));
+    if(vac->med_count != 0) // attendre que tout le monde soit rentré
+        asem_wait(&(vac->vide));
 
     vac->n = 0;
     vac->m = 0;

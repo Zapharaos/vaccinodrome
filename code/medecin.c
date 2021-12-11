@@ -23,7 +23,7 @@ void medecin()
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     // check si c'est fermé
-    if(vac->statut == false) return; //exit(EXIT_FAILURE);
+    if(vac->status == FERME) return; //exit(EXIT_FAILURE);
 
     int id_medecin = vac->med_count;
     int id_patient;
@@ -32,17 +32,11 @@ void medecin()
 
     // medecin random prévient patient, patient choisit un box random et s'installe ?
 
-    while(vac->pat_count > 0) // tant que patient à traiter
+    // while pat_count
+    while(vac->salle_count > 0) // tant que patient à traiter
     {
-        // et si deux médecins accèdent en même temps au même patient ? => semaphore
-        // asem_wait(&(vac->medecin)); // un tirage au sort à la fois
-        // do {
-        //     srand(time(NULL));
-        //     patient = rand() % vac->n; // id patient random dans la salle d'attente
-        // } while(vac->siege[patient]->status == LIBRE);
-        // asem_post(&(vac->medecin)); // fin tirage au sort
-
         asem_wait(&(vac->medecins)); // un tirage au sort à la fois
+        id_patient = -1;
         for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
         {
             if(vac->patient[i].status == OCCUPE)
@@ -54,6 +48,7 @@ void medecin()
                 break;
             }
         }
+        if(id_patient == -1) continue; // aucun patient dans la salle d'attente
 
         vac->patient[id_patient].id_medecin = id_medecin;
 
@@ -66,7 +61,8 @@ void medecin()
         // asem_post(&(vac->patient[id_patient]->sem_med)); // libère médecin ???
     }
 
-    asem_wait(&(vac->pat_vide)); // attend que tous les patients soit partis
+    if(vac->pat_count != 0) // attend que tous les patients soit partis
+        asem_wait(&(vac->pat_vide)); 
 
     vac->med_count--;
 
@@ -89,3 +85,11 @@ int main (int argc, char *argv [])
     medecin();
     return 0;
 }
+
+// et si deux médecins accèdent en même temps au même patient ? => semaphore
+        // asem_wait(&(vac->medecin)); // un tirage au sort à la fois
+        // do {
+        //     srand(time(NULL));
+        //     patient = rand() % vac->n; // id patient random dans la salle d'attente
+        // } while(vac->siege[patient]->status == LIBRE);
+        // asem_post(&(vac->medecin)); // fin tirage au sort

@@ -18,21 +18,25 @@ void ouvrir(int n, int m, int t)
     if( fd == -1 ) raler("shm_open ouvrir");
 
     ftruncate(fd , sizeof(vaccinodrome_t*));
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t*), PROT_WRITE, MAP_SHARED, fd, 0);
+    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t*) + sizeof(patient_t [n+m]), PROT_WRITE, MAP_SHARED, fd, 0);
 
-    vac->statut = true;
-    vac->med_count = 0;
-    vac->pat_count = 0; // nombre de patient total ou nombre de patient dans les box ?
-    asem_init (&(vac->vide), "vide", 0, 1);
-    asem_init (&(vac->pat_vide), "pat_vide", 0, 1);
-    vac->n = n;
-    vac->m = m;
-    vac->t = t;
-    asem_init (&(vac->salle_attente), "salle_att", 0, vac->n);
-    asem_init (&(vac->patients), "patient", 0, 0);
-    asem_init (&(vac->medecins), "medecin", 0, 0);
+    vac->n = n; // nombre de sièges
+    vac->m = m; // nombre de médecins
+    vac->t = t; // temps de la vaccination
 
-    for(int i=0; i < n; i++)
+    vac->status = OUVERT; // statut du vaccinodrome
+    vac->med_count = 0; // nombre de médecins actifs
+    vac->pat_count = 0; // nombre de patients dans la salle d'attente + dans les box
+    vac->salle_count = 0; // nombre de patients dans la salle d'attente
+
+    asem_init (&(vac->vide), "vide", 0, 0);
+    asem_init (&(vac->pat_vide), "pat_vide", 0, 0);
+
+    asem_init (&(vac->salle_attente), "salle_att", 0, vac->n); // salle d'attente du vaccinodrome
+    asem_init (&(vac->patients), "patient", 0, 1);
+    asem_init (&(vac->medecins), "medecin", 0, 1);
+
+    for(int i=0; i < (n+m); i++)
     {
         vac->patient[i].status = LIBRE;
         asem_init(&(vac->patient[i].sem_pat), "siege_pat", 0, 0);

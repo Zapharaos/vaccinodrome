@@ -1,22 +1,31 @@
 // Fichier shm.h à rédiger
 #include <stdnoreturn.h> // raler
-#include <stdbool.h> // bool
 
 #include "asem.h" // asem_t
 
 /** @enum individu_type
  *  @brief This enum describes the type of un individu
  */
-enum status
+enum vac_status
+{
+    FERME = 0,       /**< a packet has been sent, waiting for the ACK */
+    OUVERT = 1,      /**< correct ACK received, sending new packet */
+};
+typedef enum vac_status vac_status_t;
+
+/** @enum individu_type
+ *  @brief This enum describes the type of un individu
+ */
+enum pat_status
 {
     LIBRE = 0,       /**< a packet has been sent, waiting for the ACK */
     OCCUPE = 1,      /**< correct ACK received, sending new packet */
     TRAITEMENT = 2
 };
-typedef enum status status_t;
+typedef enum pat_status pat_status_t;
 
 struct patient {
-    status_t status;
+    pat_status_t status;
     char nom[MAX_NOMSEM + 1];
     int id_medecin;
     asem_t sem_pat;
@@ -25,9 +34,10 @@ struct patient {
 typedef struct patient patient_t;
 
 struct vaccinodrome {
-    bool statut;
+    vac_status_t status;
     int med_count;
     int pat_count;
+    int salle_count;
     asem_t vide;
     asem_t pat_vide;
     int n;
