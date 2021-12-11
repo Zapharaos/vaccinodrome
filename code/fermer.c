@@ -27,6 +27,12 @@ void fermer()
     // attendre que tout le monde soit rentré
     asem_wait(&(vac->vide));
 
+    vac->n = 0;
+    vac->m = 0;
+    vac->t = 0;
+    vac->med_count = 0;
+    vac->pat_count = 0;
+
     asem_destroy (&(vac->vide));
     asem_destroy (&(vac->pat_vide));
     asem_destroy (&(vac->salle_attente));

@@ -10,7 +10,7 @@
 
 #include "shm.h"
 
-void patient()
+void patient(char *nom)
 {
     int fd = shm_open("/vaccinodrome", O_RDWR, 0666);
     if(fd == -1) exit(EXIT_FAILURE);
@@ -29,28 +29,48 @@ void patient()
     asem_wait(&(vac->salle_attente));
 
     // check si une place s'est libérée mais que le vaccinodrome a fermé entre temps
-    // sinon wait avant check fermé
+    // sinon wait avant 1er check si fermé
     if(vac->statut == false)
     {
         asem_post(&(vac->salle_attente)); // libère la place, peut-être que d'autres sont dans le même cas
         return;
     }
 
-    // insérer nos données dans le tableau ===> id siège de ce patient = siege_count
+    asem_post(&(vac->vide));
+
     vac->pat_count++; // nb patients global dans le vaccinodrome
-    vac->siege_count++; // nb sieges utilisés
+    int id_patient;
 
-    // attendre un médecin (comment récup id_med, check tous les box pour voir dans lequel on est)
+    // insérer nos données dans le tableau ===> id siège de ce patient = siege_count
+    asem_wait(&(vac->patients)); // une installation à la fois
+    for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
+    {
+        if(vac->patient[i].status == LIBRE)
+        {
+            vac->patient[i].status = OCCUPE;
+            asem_post(&(vac->patients)); // fini de s'installer
+            // vac->patient[i].nom = nom;
+            strncpy(vac->patient[i].nom, nom, MAX_NOMSEM + 1);
+            id_patient = i;
+            break;
+        }
+    }
 
-    // libere place sale d'attente
-    vac->siege_count--;
-    asem_post(&(vac->salle_attente));
+    asem_wait(&(vac->patient[id_patient].sem_pat)); // attend que medecin cherche patient
+    asem_post(&(vac->salle_attente)); // libere place sale d'attente
 
-    // rejoindre médecin + se faire vacciner + libérer le médecin ?
+    int id_medecin = vac->patient[id_patient].id_medecin;
+    printf("%d %d\n", id_patient, id_medecin);
+
+    asem_post(&(vac->patient[id_patient].sem_med)); // rejoint médecin dans la salle d'attente // necessaire ?
+
+    asem_wait(&(vac->patient[id_patient].sem_pat)); // attend fin vaccination
 
     vac->pat_count--;
+    vac->patient[id_patient].status = LIBRE;
+    fprintf(stdout, "P\n");
 
-    if(vac->pat_count == 0) // signale que tous les patients sont partis
+    if(vac->statut == false && vac->pat_count == 0) // signale que tous les patients sont partis (quand ferme)
         asem_post(&(vac->pat_vide));
 }
 
@@ -73,7 +93,7 @@ int main (int argc, char *argv [])
         exit(EXIT_FAILURE);
     }
 
-    patient();
+    patient(argv[1]);
 
     return 0;
 }

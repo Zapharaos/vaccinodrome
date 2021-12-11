@@ -21,14 +21,23 @@ void ouvrir(int n, int m, int t)
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t*), PROT_WRITE, MAP_SHARED, fd, 0);
 
     vac->statut = true;
+    vac->med_count = 0;
+    vac->pat_count = 0; // nombre de patient total ou nombre de patient dans les box ?
+    asem_init (&(vac->vide), "vide", 0, 1);
+    asem_init (&(vac->pat_vide), "pat_vide", 0, 1);
     vac->n = n;
     vac->m = m;
     vac->t = t;
-    vac->med_count = 0;
-    vac->pat_count = 0; // nombre de patient total ou nombre de patient dans les box ?
-    asem_init (&(vac->vide), "vide", 0, 0);
-    asem_init (&(vac->pat_vide), "pat_vide", 0, 0);
-    asem_init (&(vac->salle_attente), "wait_room", 0, vac->n);
+    asem_init (&(vac->salle_attente), "salle_att", 0, vac->n);
+    asem_init (&(vac->patients), "patient", 0, 0);
+    asem_init (&(vac->medecins), "medecin", 0, 0);
+
+    for(int i=0; i < n; i++)
+    {
+        vac->patient[i].status = LIBRE;
+        asem_init(&(vac->patient[i].sem_pat), "siege_pat", 0, 0);
+        asem_init(&(vac->patient[i].sem_med), "siege_med", 0, 0);
+    }
 }
 
 int main (int argc, char *argv [])

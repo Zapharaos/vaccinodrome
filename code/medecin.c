@@ -6,6 +6,7 @@
 #include <sys/mman.h> // shm_open
 #include <unistd.h> // ftruncate
 #include <sys/stat.h> // fstat
+#include <time.h> // random number
 
 #include "shm.h"
 
@@ -24,21 +25,52 @@ void medecin()
     // check si c'est fermé
     if(vac->statut == false) return; //exit(EXIT_FAILURE);
 
-    // box id value = med_count
+    int id_medecin = vac->med_count;
+    int id_patient;
+
     vac->med_count++;
 
-    while(vac->statut == true) // && vac->nb_patient > 0 ?? et si deux médecins accèdent en même temps au même patient ?
+    // medecin random prévient patient, patient choisit un box random et s'installe ?
+
+    while(vac->pat_count > 0) // tant que patient à traiter
     {
-        // récupérer un patient -> num aléatoire entre 0 et siege_count
-        // sleep(args->t);
-        // libérer un patient
+        // et si deux médecins accèdent en même temps au même patient ? => semaphore
+        // asem_wait(&(vac->medecin)); // un tirage au sort à la fois
+        // do {
+        //     srand(time(NULL));
+        //     patient = rand() % vac->n; // id patient random dans la salle d'attente
+        // } while(vac->siege[patient]->status == LIBRE);
+        // asem_post(&(vac->medecin)); // fin tirage au sort
+
+        asem_wait(&(vac->medecins)); // un tirage au sort à la fois
+        for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
+        {
+            if(vac->patient[i].status == OCCUPE)
+            {
+                vac->patient[i].status = TRAITEMENT;
+                asem_post(&(vac->medecins)); // fin tirage au sort
+                printf("%s\n", vac->patient[i].nom);
+                id_patient = i;
+                break;
+            }
+        }
+
+        vac->patient[id_patient].id_medecin = id_medecin;
+
+        asem_post(&(vac->patient[id_patient].sem_pat)); // cherche le patient
+        asem_wait(&(vac->patient[id_patient].sem_med)); // attend que patient arrive dans la salle
+
+        usleep((useconds_t) vac->t); // pas certain que le cast soit correct ici
+
+        asem_post(&(vac->patient[id_patient].sem_pat)); // libère le patient
+        // asem_post(&(vac->patient[id_patient]->sem_med)); // libère médecin ???
     }
 
     asem_wait(&(vac->pat_vide)); // attend que tous les patients soit partis
 
     vac->med_count--;
 
-    if(vac->med_count == 0) // signale que tous les médecins sont partis
+    if(vac->med_count == 0) // le dernier signale que tous les médecins sont partis
         asem_post(&(vac->vide));
 
     return;
