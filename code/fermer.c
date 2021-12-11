@@ -23,6 +23,24 @@ void fermer()
 
     // ferme
     vac->status = FERME;
+    int *test = malloc(sizeof(int));
+
+    if(vac->med_count > 0)
+    {
+        for(int i=0; i < vac->med_count; i++) // puis sem post sem pour chaque médecin
+        {
+            asem_post(&(vac->trouverunnom)); // post trouverunnom
+            asem_getvalue(&(vac->trouverunnom), test);
+            adebug(0, "m = %d - FERME(0) = %d && value = %d", i, vac->status, *test);
+        }
+    }
+    else if(vac->salle_count > 0)
+    {
+        adebug (0, "ici2 %d", vac->status);
+        asem_wait(&(vac->fermer)); // dernier medecin previent ici post fermer
+        for(int i=0; i < vac->m; i++) // puis sem post sem pour chaque médecin
+            asem_post(&(vac->trouverunnom)); // post trouverunnom
+    }
 
     if(vac->med_count != 0) // attendre que tout le monde soit rentré
         asem_wait(&(vac->vide));

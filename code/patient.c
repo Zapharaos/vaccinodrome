@@ -57,16 +57,17 @@ void patient(char *nom)
         }
     }
 
-    asem_wait(&(vac->patient[id_patient].sem_pat)); // attend que medecin cherche patient
-    vac->salle_count--;
+    asem_post(&(vac->trouverunnom)); 
+    asem_wait(&(vac->patient[id_patient].patient)); // attend que medecin cherche patient
+    // vac->salle_count--;
     asem_post(&(vac->salle_attente)); // libere place sale d'attente
 
     int id_medecin = vac->patient[id_patient].id_medecin;
     printf("%d %d\n", id_patient, id_medecin);
 
-    asem_post(&(vac->patient[id_patient].sem_med)); // rejoint médecin dans la salle d'attente // necessaire ?
+    asem_post(&(vac->patient[id_patient].medecin)); // rejoint médecin dans la salle d'attente // necessaire ?
 
-    asem_wait(&(vac->patient[id_patient].sem_pat)); // attend fin vaccination
+    asem_wait(&(vac->patient[id_patient].patient)); // attend fin vaccination
 
     vac->pat_count--;
     vac->patient[id_patient].status = LIBRE;

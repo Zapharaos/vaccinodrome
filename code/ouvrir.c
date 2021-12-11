@@ -22,25 +22,26 @@ void ouvrir(int n, int m, int t)
 
     vac->n = n; // nombre de sièges
     vac->m = m; // nombre de médecins
-    vac->t = t; // temps de la vaccination
+    vac->t = t * 1000; // temps de la vaccination, en ms
 
     vac->status = OUVERT; // statut du vaccinodrome
     vac->med_count = 0; // nombre de médecins actifs
     vac->pat_count = 0; // nombre de patients dans la salle d'attente + dans les box
     vac->salle_count = 0; // nombre de patients dans la salle d'attente
 
-    asem_init (&(vac->vide), "vide", 0, 0);
-    asem_init (&(vac->pat_vide), "pat_vide", 0, 0);
+    asem_init (&(vac->vide), "vide", 1, 0);
+    asem_init (&(vac->pat_vide), "pat_vide", 1, 0);
 
-    asem_init (&(vac->salle_attente), "salle_att", 0, vac->n); // salle d'attente du vaccinodrome
+    asem_init (&(vac->trouverunnom), "trouver", 1, 0); // salle d'attente du vaccinodrome côté médecin
+    asem_init (&(vac->salle_attente), "salle_att", 1, vac->n); // salle d'attente du vaccinodrome côté patient
     asem_init (&(vac->patients), "patient", 0, 1);
     asem_init (&(vac->medecins), "medecin", 0, 1);
 
     for(int i=0; i < (n+m); i++)
     {
         vac->patient[i].status = LIBRE;
-        asem_init(&(vac->patient[i].sem_pat), "siege_pat", 0, 0);
-        asem_init(&(vac->patient[i].sem_med), "siege_med", 0, 0);
+        asem_init(&(vac->patient[i].patient), "patient", 0, 0);
+        asem_init(&(vac->patient[i].medecin), "medecin", 0, 0);
     }
 }
 

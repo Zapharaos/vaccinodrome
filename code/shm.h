@@ -1,5 +1,6 @@
 // Fichier shm.h à rédiger
 #include <stdnoreturn.h> // raler
+#include <unistd.h> // usleep type
 
 #include "asem.h" // asem_t
 
@@ -28,13 +29,14 @@ struct patient {
     pat_status_t status;
     char nom[MAX_NOMSEM + 1];
     int id_medecin;
-    asem_t sem_pat;
-    asem_t sem_med;
+    asem_t patient;
+    asem_t medecin;
 };
 typedef struct patient patient_t;
 
 struct vaccinodrome {
     vac_status_t status;
+    asem_t fermer;
     int med_count;
     int pat_count;
     int salle_count;
@@ -42,7 +44,8 @@ struct vaccinodrome {
     asem_t pat_vide;
     int n;
     int m;
-    int t;
+    useconds_t t;
+    asem_t trouverunnom;
     asem_t salle_attente;
     asem_t patients;
     asem_t medecins;
