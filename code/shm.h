@@ -1,4 +1,3 @@
-// Fichier shm.h à rédiger
 #include <stdnoreturn.h> // raler
 #include <unistd.h> // usleep type
 #include <sys/mman.h> // munmap
@@ -95,6 +94,12 @@ typedef struct patient patient_t;
 /** @var asem_t::salle_p
 *  'salle_p' contient le semaphore à n pour la salle d'attente (pour patient)
 */
+/** @var asem_t::edit_salle
+*  'salle_p' contient le semaphore à 1 des sections critiques communes
+*/
+/** @var asem_t::medecin
+*  'salle_p' contient le semaphore à 1 des sections critiques des medecins
+*/
 /** @var patient_t::patient
 *  'patient' contient un tableau de patient (siege/box) de taille n+m
 */
@@ -108,8 +113,8 @@ struct vaccinodrome {
     int salle_count;
     asem_t vide;
     asem_t pat_vide;
-    asem_t is_in_salle;
-    asem_t salle_attente;
+    asem_t salle_m;
+    asem_t salle_p;
     asem_t edit_salle;
     asem_t medecin;
     patient_t patient[];
@@ -132,10 +137,23 @@ noreturn void raler(const char *message);
 int string_to_int(char *arg);
 
 /**
+ * @fn      vaccinodrome_t* get_vaccinodrome(int fd, int *lg)
+ * @brief   Recupere la memoire partagee
+ * lg est un pointeur sur un entier, different de -1 signifie qu'on souhaite
+ creer la memoire partagee a partir de la taille lg fournie dans ouvrir.c
+ * lg egal à -1 dans tous les autres cas, dans fermer.c et nettoyer.c on veut
+ recupere la taille du fichier via stat pour munmap
+ * @param   fd      Le fichier content la memoire partagee
+ * @param   lg      Pointeur, flags ou taille de la memoire partagee
+ * @return  La structure contenant la memoire partagee
+ */
+vaccinodrome_t* get_vaccinodrome(int fd, int *lg);
+
+/**
  * @fn      int clean_file(vaccinodrome_t *vac, size_t lg)
- * @brief   Cleans shared memomry
- * @param   arg     Structure to clean
- * @param   lg      Size of the structure
- * @return  -1 if an error has occured, else 0
+ * @brief   Nettoie la memoire partagee
+ * @param   arg     Structure contenant la memoire partagee
+ * @param   lg      Taille de la structure
+ * @return  -1 si une erreur a eu lieu, sinon 0
  */
 int clean_file(vaccinodrome_t *vac, size_t lg);

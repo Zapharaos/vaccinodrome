@@ -15,11 +15,8 @@ void ouvrir(int n, int m, int t)
     int fd = shm_open(FILE_NAME, O_RDWR | O_EXCL | O_CREAT, 0666);
     CHECK(fd); // existe deja
 
-    size_t lg = sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m);
-    CHECK(ftruncate(fd, lg));
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, lg, 
-                                                PROT_WRITE, MAP_SHARED, fd, 0);
-    NCHECK(vac);
+    int lg = sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m);
+    vaccinodrome_t *vac = get_vaccinodrome(fd, &lg); // ptr pour d'autres cas
 
     vac->n = n; // nombre de sièges
     vac->m = m; // nombre de médecins
@@ -35,12 +32,12 @@ void ouvrir(int n, int m, int t)
     // post pat_count = 0
     CHECK(asem_init(&(vac->pat_vide), "pat_vide", 1, 0));
     // salle d'attente du vaccinodrome côté médecin
-    CHECK(asem_init(&(vac->is_in_salle), "in_salle", 1, 0));
+    CHECK(asem_init(&(vac->salle_m), "in_salle", 1, 0));
     // salle d'attente du vaccinodrome côté patient
-    CHECK(asem_init(&(vac->salle_attente), "salle_att", 1, vac->n));
-    // acceder a un siege
+    CHECK(asem_init(&(vac->salle_p), "salle_att", 1, vac->n));
+    // sections critiques communes (medecins, patient, fermer)
     CHECK(asem_init(&(vac->edit_salle), "edit_salle", 1, 1));
-
+    // sections critiques des medecins 
     CHECK(asem_init(&(vac->medecin), "med", 1, 1));
 
     for(int i=0; i < (n+m); i++) // nombre max de patients en meme temps : n+m

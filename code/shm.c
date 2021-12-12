@@ -1,10 +1,10 @@
-// Fichier shm.c à rédiger
 #include "shm.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/stat.h> // fstat
 
 noreturn void raler(const char *message)
 {
@@ -36,12 +36,30 @@ int string_to_int(char *arg)
     return (int) n;
 }
 
+vaccinodrome_t* get_vaccinodrome(int fd, int *lg)
+{
+    if(*lg == -1)
+    {
+        struct stat sb;
+        CHECK(fstat(fd, &sb));
+        *lg = sb.st_size;
+    }
+    else
+        CHECK(ftruncate(fd, *lg));
+
+    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, *lg, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    NCHECK(vac);
+
+    return vac;
+}
+
+
 int clean_file(vaccinodrome_t *vac, size_t lg)
 {
     CHECK(asem_destroy(&(vac->vide)));
     CHECK(asem_destroy(&(vac->pat_vide)));
-    CHECK(asem_destroy(&(vac->is_in_salle)));
-    CHECK(asem_destroy(&(vac->salle_attente)));
+    CHECK(asem_destroy(&(vac->salle_m)));
+    CHECK(asem_destroy(&(vac->salle_p)));
     CHECK(asem_destroy(&(vac->edit_salle)));
 
     for(int i=0; i < (vac->n+vac->m); i++)

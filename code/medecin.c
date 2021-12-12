@@ -1,4 +1,3 @@
-// Fichier medecin.c à rédiger
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -15,12 +14,8 @@ void medecin()
     int fd = shm_open(FILE_NAME, O_RDWR, 0666);
     CHECK(fd); // existe pas
 
-    struct stat sb;
-    CHECK(fstat(fd, &sb));
-
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size,
-                                    PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    NCHECK(vac);
+    int lg = -1; // flags fonction, lg vaudra la taille de fd apres l'appel
+    vaccinodrome_t *vac = get_vaccinodrome(fd, &lg);
 
     // verifie si ferme, cool pas besoin de travailler aujourd'hui
     if(vac->status == FERME) return;
@@ -45,14 +40,14 @@ void medecin()
         if(vac->status == FERME && vac->salle_count == 0) break;
  
         // post par patient qui entre ou par "fermer.c" pour m medecins
-        CHECK(asem_wait(&(vac->is_in_salle)));
+        CHECK(asem_wait(&(vac->salle_m)));
 
         if(vac->status == FERME && vac->salle_count == 0) break; // "fermer.c"
 
         // sinon, debut section critique commune : medecin recupere un patient
         CHECK(asem_wait(&(vac->edit_salle)));
 
-        // il y a toujours au moins un patient car on a passé le wait ligne 48
+        // il y a toujours au moins un patient car on a passé le wait ligne 47
         for(int i=0; i < (vac->n + vac->m); i++)
         {
             if(vac->patient[i].status == OCCUPE)

@@ -1,4 +1,3 @@
-// Fichier fermer.c à rédiger
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,39 +13,35 @@ void fermer()
     int fd = shm_open(FILE_NAME, O_RDWR, 0666);
     CHECK(fd); // deja supprime
 
-    struct stat sb;
-    CHECK(fstat(fd, &sb));
+    int lg = -1; // flags fonction, lg vaudra la taille de fd apres l'appel
+    vaccinodrome_t *vac = get_vaccinodrome(fd, &lg);
 
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size,
-                                    PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    NCHECK(vac);
-
-    // debut section critique commune : modifier statut + prevenir medecins ?
+    // debut section critique commune : modifier statut + prevenir medecins
     CHECK(asem_wait(&(vac->edit_salle)));
 
     vac->status = FERME; // le vaccinodrome ferme
 
-    if(vac->med_count > 0) // si il reste encore des médecins
+    if(vac->med_count > 0) // si il reste encore des médecins : prevenir
     {
         CHECK(asem_post(&(vac->edit_salle))); // fin section critique
+
         for(int i=0; i < vac->m; i++) // pour chaque médecin
-            CHECK(asem_post(&(vac->is_in_salle))); // prévenir de la fermeture
+            CHECK(asem_post(&(vac->salle_m))); // prévenir de la fermeture
+
+        // debut section critique commune : acces med_count + attendre fin
+        CHECK(asem_wait(&(vac->edit_salle)));
+
+        if(vac->med_count != 0) // si il reste encore des medecins
+        {
+            CHECK(asem_post(&(vac->edit_salle))); // fin section critique
+            CHECK(asem_wait(&(vac->vide))); // attendre medecins partent
+        } else // sinon, pas de médecin à attendre
+            CHECK(asem_post(&(vac->edit_salle))); // fin section critique
     }
-    else // pas de médecin à attendre
+    else // sinon, pas de médecin à attendre
         CHECK(asem_post(&(vac->edit_salle))); // fin section critique
 
-    // debut section critique commune : acces med_count
-    CHECK(asem_wait(&(vac->edit_salle)));
-
-    if(vac->med_count != 0) // si il reste encore des medecins
-    {
-        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
-        CHECK(asem_wait(&(vac->vide))); // attendre medecins partent
-    }
-    else // pas de médecin à attendre
-        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
-
-    CHECK(clean_file(vac, sb.st_size)); // clean
+    CHECK(clean_file(vac, lg)); // clean
 }
 
 int main (int argc, char *argv [])

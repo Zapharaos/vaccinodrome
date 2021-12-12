@@ -1,4 +1,3 @@
-// Fichier patient.c à rédiger
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,20 +14,16 @@ void patient(char *nom)
     int fd = shm_open(FILE_NAME, O_RDWR, 0666);
     CHECK(fd); // existe pas
 
-    struct stat sb;
-    CHECK(fstat(fd, &sb));
-
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size,
-                                    PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    NCHECK(vac);
+    int lg = -1; // flags fonction, lg vaudra la taille de fd apres l'appel
+    vaccinodrome_t *vac = get_vaccinodrome(fd, &lg);
 
     // attend d'avoir une place de libre dans la salle d'attente
-    CHECK(asem_wait(&(vac->salle_attente)));
+    CHECK(asem_wait(&(vac->salle_p)));
 
     // verifie si c'est ferme : on repart 
     if(vac->status == FERME)
     {
-        CHECK(asem_post(&(vac->salle_attente))); // libère la place 
+        CHECK(asem_post(&(vac->salle_p))); // libère la place 
         raler("patient.c : vac ferme");
     }
 
@@ -46,7 +41,7 @@ void patient(char *nom)
     // debut section critique commune : patient s'installe dans la salle 
     CHECK(asem_wait(&(vac->edit_salle)));
 
-    // il y a au moins un siege de libre car on a passé le wait ligne 26
+    // il y a au moins un siege de libre car on a passé le wait ligne 25
     for(int i=0; i < (vac->n + vac->m); i++)
     {
         if(vac->patient[i].status == LIBRE)
@@ -62,9 +57,9 @@ void patient(char *nom)
     strncpy(vac->patient[id_patient].nom, nom, MAX_NOMSEM + 1);
     printf("patient %s siege %d\n", nom, id_patient);
 
-    CHECK(asem_post(&(vac->is_in_salle))); // libere place sale d'attente
+    CHECK(asem_post(&(vac->salle_m))); // libere place sale d'attente
     CHECK(asem_wait(&(vac->patient[id_patient].s_patient))); // attend medecin
-    CHECK(asem_post(&(vac->salle_attente))); // libere place sale d'attente
+    CHECK(asem_post(&(vac->salle_p))); // libere place sale d'attente
 
     int id_medecin = vac->patient[id_patient].id_medecin; // recupere id_med
     fprintf(stdout, "patient %s medecin %d\n", nom, id_medecin);
