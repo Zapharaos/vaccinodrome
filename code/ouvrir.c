@@ -32,16 +32,15 @@ void ouvrir(int n, int m, int t)
     asem_init (&(vac->vide), "vide", 1, 0);
     asem_init (&(vac->pat_vide), "pat_vide", 1, 0);
 
-    asem_init (&(vac->trouverunnom), "trouver", 1, 0); // salle d'attente du vaccinodrome côté médecin
+    asem_init (&(vac->is_in_salle), "trouver", 1, 0); // salle d'attente du vaccinodrome côté médecin
     asem_init (&(vac->salle_attente), "salle_att", 1, vac->n); // salle d'attente du vaccinodrome côté patient
-    asem_init (&(vac->patients), "patient", 1, 1);
-    //asem_init (&(vac->medecins), "medecin", 0, 1);
+    asem_init (&(vac->edit_salle), "patient", 1, 1);
 
     for(int i=0; i < (n+m); i++)
     {
         vac->patient[i].status = LIBRE;
-        asem_init(&(vac->patient[i].patient), "patient", 1, 0);
-        asem_init(&(vac->patient[i].medecin), "medecin", 1, 0);
+        asem_init(&(vac->patient[i].s_patient), "patient", 1, 0);
+        asem_init(&(vac->patient[i].s_medecin), "medecin", 1, 0);
     }
 }
 

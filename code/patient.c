@@ -42,7 +42,7 @@ void patient(char *nom)
     int id_patient;
 
     // insérer nos données dans le tableau ===> id siège de ce patient = siege_count
-    asem_wait(&(vac->patients)); // une installation à la fois
+    asem_wait(&(vac->edit_salle)); // une installation à la fois
     for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
     {
         if(vac->patient[i].status == LIBRE)
@@ -51,22 +51,22 @@ void patient(char *nom)
             // vac->patient[i].nom = nom;
             strncpy(vac->patient[i].nom, nom, MAX_NOMSEM + 1);
             id_patient = i;
-            asem_post(&(vac->patients)); // fini de s'installer
+            asem_post(&(vac->edit_salle)); // fini de s'installer
             break;
         }
     }
 
-    asem_post(&(vac->trouverunnom)); 
-    asem_wait(&(vac->patient[id_patient].patient)); // attend que medecin cherche patient
+    asem_post(&(vac->is_in_salle)); 
+    asem_wait(&(vac->patient[id_patient].s_patient)); // attend que medecin cherche patient
     // vac->salle_count--;
     asem_post(&(vac->salle_attente)); // libere place sale d'attente
 
     int id_medecin = vac->patient[id_patient].id_medecin;
     printf("%d %d\n", id_patient, id_medecin);
 
-    asem_post(&(vac->patient[id_patient].medecin)); // rejoint médecin dans la salle d'attente // necessaire ?
+    asem_post(&(vac->patient[id_patient].s_medecin)); // rejoint médecin dans la salle d'attente // necessaire ?
 
-    asem_wait(&(vac->patient[id_patient].patient)); // attend fin vaccination
+    asem_wait(&(vac->patient[id_patient].s_patient)); // attend fin vaccination
 
     vac->pat_count--;
     vac->patient[id_patient].status = LIBRE;

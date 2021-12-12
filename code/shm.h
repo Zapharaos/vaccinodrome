@@ -29,8 +29,8 @@ struct patient {
     pat_status_t status;
     char nom[MAX_NOMSEM + 1];
     int id_medecin;
-    asem_t patient;
-    asem_t medecin;
+    asem_t s_patient;
+    asem_t s_medecin;
 };
 typedef struct patient patient_t;
 
@@ -45,10 +45,9 @@ struct vaccinodrome {
     int n;
     int m;
     useconds_t t;
-    asem_t trouverunnom;
+    asem_t is_in_salle;
     asem_t salle_attente;
-    asem_t patients;
-    asem_t medecins;
+    asem_t edit_salle;
     patient_t patient[];
 };
 typedef struct vaccinodrome vaccinodrome_t;
