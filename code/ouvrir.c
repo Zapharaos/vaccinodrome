@@ -17,8 +17,8 @@ void ouvrir(int n, int m, int t)
     // vérifier qu'il existe pas déjà + TESTER ERRNO
     if( fd == -1 ) raler("shm_open ouvrir");
 
-    ftruncate(fd , sizeof(vaccinodrome_t*));
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t*) + sizeof(patient_t)*(n+m), PROT_WRITE, MAP_SHARED, fd, 0);
+    ftruncate(fd , sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m));
+    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m), PROT_WRITE, MAP_SHARED, fd, 0);
 
     vac->n = n; // nombre de sièges
     vac->m = m; // nombre de médecins
@@ -32,9 +32,9 @@ void ouvrir(int n, int m, int t)
     asem_init (&(vac->vide), "vide", 1, 0);
     asem_init (&(vac->pat_vide), "pat_vide", 1, 0);
 
-    asem_init (&(vac->is_in_salle), "trouver", 1, 0); // salle d'attente du vaccinodrome côté médecin
+    asem_init (&(vac->is_in_salle), "in_salle", 1, 0); // salle d'attente du vaccinodrome côté médecin
     asem_init (&(vac->salle_attente), "salle_att", 1, vac->n); // salle d'attente du vaccinodrome côté patient
-    asem_init (&(vac->edit_salle), "patient", 1, 1);
+    asem_init (&(vac->edit_salle), "edit_salle", 1, 1);
 
     for(int i=0; i < (n+m); i++)
     {

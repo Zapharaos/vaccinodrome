@@ -48,10 +48,10 @@ void patient(char *nom)
         if(vac->patient[i].status == LIBRE)
         {
             vac->patient[i].status = OCCUPE;
-            // vac->patient[i].nom = nom;
             strncpy(vac->patient[i].nom, nom, MAX_NOMSEM + 1);
-            id_patient = i;
             asem_post(&(vac->edit_salle)); // fini de s'installer
+            id_patient = i;
+            printf("patient %s siege %d\n", nom, id_patient);
             break;
         }
     }
@@ -62,7 +62,7 @@ void patient(char *nom)
     asem_post(&(vac->salle_attente)); // libere place sale d'attente
 
     int id_medecin = vac->patient[id_patient].id_medecin;
-    printf("%d %d\n", id_patient, id_medecin);
+    fprintf(stdout, "patient %s medecin %d\n", nom, id_medecin);
 
     asem_post(&(vac->patient[id_patient].s_medecin)); // rejoint médecin dans la salle d'attente // necessaire ?
 
@@ -70,7 +70,6 @@ void patient(char *nom)
 
     vac->pat_count--;
     vac->patient[id_patient].status = LIBRE;
-    fprintf(stdout, "P\n");
 
     if(vac->status == FERME && vac->pat_count == 0) // signale que tous les patients sont partis (quand ferme)
         asem_post(&(vac->pat_vide));

@@ -24,6 +24,8 @@ void medecin()
     // check si c'est fermé
     if(vac->status == FERME) return; //exit(EXIT_FAILURE);
 
+    if(vac->m == vac->med_count) exit(EXIT_FAILURE);
+
     int id_medecin = vac->med_count;
     int id_patient;
 
@@ -46,15 +48,12 @@ void medecin()
             {
                 vac->patient[i].status = TRAITEMENT;
                 vac->salle_count--;
-                printf("%s\n", vac->patient[i].nom);
+                fprintf(stdout, "medecin %d vaccine %s\n", id_medecin, vac->patient[i].nom);
                 id_patient = i;
                 asem_post(&(vac->edit_salle)); // fin tirage au sort
                 break;
             }
         }
-
-        if(vac->status == FERME && vac->salle_count == 0)
-            asem_post(&(vac->fermer)); // post fermer
 
         vac->patient[id_patient].id_medecin = id_medecin;
 
@@ -65,12 +64,21 @@ void medecin()
 
         asem_post(&(vac->patient[id_patient].s_patient)); // libère le patient
         // asem_post(&(vac->patient[id_patient]->medecin)); // libère médecin ???
+
+        if(vac->status == FERME && vac->salle_count == 0)
+        {
+            adebug(1, "dernier patient vient d'être traité %d", id_patient);
+            asem_post(&(vac->fermer)); // post fermer
+        }
     }
+
+    adebug(1, "médecin %d attend que tous les patients partent, reste %d", id_medecin, vac->pat_count);
 
     if(vac->pat_count != 0) // attend que tous les patients soit partis
         asem_wait(&(vac->pat_vide)); 
 
     vac->med_count--;
+    adebug(1, "médecin %d vient de partir, reste %d", id_medecin, vac->med_count);
 
     if(vac->med_count == 0) // le dernier signale que tous les médecins sont partis
         asem_post(&(vac->vide));

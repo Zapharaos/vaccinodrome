@@ -22,15 +22,15 @@ void fermer()
 
     // ferme
     vac->status = FERME;
-    int test;
+    // int test;
 
     if(vac->med_count > 0)
     {
-        for(int i=0; i < vac->med_count; i++) // puis sem post sem pour chaque médecin
+        for(int i=0; i < vac->m; i++) // puis sem post sem pour chaque médecin
         {
             asem_post(&(vac->is_in_salle)); // post trouverunnom
-            asem_getvalue(&(vac->is_in_salle), &test);
-            adebug(0, "m = %d - FERME(0) = %d && value = %d", i, vac->status, test);
+            // asem_getvalue(&(vac->is_in_salle), &test);
+            // adebug(0, "m = %d - FERME(0) = %d && value = %d", i, vac->status, test);
         }
     }
     else if(vac->salle_count > 0)
@@ -52,7 +52,15 @@ void fermer()
 
     asem_destroy (&(vac->vide));
     asem_destroy (&(vac->pat_vide));
+    asem_destroy (&(vac->is_in_salle));
     asem_destroy (&(vac->salle_attente));
+    asem_destroy (&(vac->edit_salle));
+
+    for(int i=0; i < (vac->n+vac->m); i++)
+    {
+        asem_destroy(&(vac->patient[i].s_patient));
+        asem_destroy(&(vac->patient[i].s_medecin));
+    }
 
     if(munmap(vac, sb.st_size) == -1)
         raler("munmap");
