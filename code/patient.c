@@ -19,7 +19,6 @@ void patient(char *nom)
     if (fstat(fd, &sb) < 0)
         raler("Erreur lstat");
 
-    ftruncate(fd , sizeof(vaccinodrome_t));
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     // check si fermé
@@ -49,10 +48,10 @@ void patient(char *nom)
         if(vac->patient[i].status == LIBRE)
         {
             vac->patient[i].status = OCCUPE;
-            asem_post(&(vac->patients)); // fini de s'installer
             // vac->patient[i].nom = nom;
             strncpy(vac->patient[i].nom, nom, MAX_NOMSEM + 1);
             id_patient = i;
+            asem_post(&(vac->patients)); // fini de s'installer
             break;
         }
     }
@@ -79,6 +78,7 @@ void patient(char *nom)
 
 int main (int argc, char *argv [])
 {
+    ainit(argv[0]);
 
     if(argc < 2 || argc >= 3)
     {

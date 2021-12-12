@@ -34,7 +34,7 @@ void nettoyer()
 
 int main (int argc, char *argv [])
 {
-    (void) argv;
+    ainit(argv[0]);
 
     if(argc < 1 || argc >= 2)
     {

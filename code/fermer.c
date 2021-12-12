@@ -18,20 +18,19 @@ void fermer()
     if (fstat(fd, &sb) < 0)
         raler("Erreur lstat");
 
-    ftruncate(fd , sizeof(vaccinodrome_t));
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
     // ferme
     vac->status = FERME;
-    int *test = malloc(sizeof(int));
+    int test;
 
     if(vac->med_count > 0)
     {
         for(int i=0; i < vac->med_count; i++) // puis sem post sem pour chaque médecin
         {
             asem_post(&(vac->trouverunnom)); // post trouverunnom
-            asem_getvalue(&(vac->trouverunnom), test);
-            adebug(0, "m = %d - FERME(0) = %d && value = %d", i, vac->status, *test);
+            asem_getvalue(&(vac->trouverunnom), &test);
+            adebug(0, "m = %d - FERME(0) = %d && value = %d", i, vac->status, test);
         }
     }
     else if(vac->salle_count > 0)
@@ -62,7 +61,7 @@ void fermer()
 
 int main (int argc, char *argv [])
 {
-    (void) argv;
+    ainit(argv[0]);
 
     if(argc < 1 || argc >= 2)
     {
