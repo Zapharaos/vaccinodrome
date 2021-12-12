@@ -11,7 +11,7 @@
 
 void fermer()
 {
-    int fd = shm_open("/vaccinodrome", O_RDWR, 0666);
+    int fd = shm_open("/freitagmatthieu", O_RDWR, 0666);
     if(fd == -1) exit(EXIT_FAILURE);
 
     struct stat sb;
@@ -22,16 +22,11 @@ void fermer()
 
     // ferme
     vac->status = FERME;
-    // int test;
 
     if(vac->med_count > 0)
     {
         for(int i=0; i < vac->m; i++) // puis sem post sem pour chaque médecin
-        {
             asem_post(&(vac->is_in_salle)); // post trouverunnom
-            // asem_getvalue(&(vac->is_in_salle), &test);
-            // adebug(0, "m = %d - FERME(0) = %d && value = %d", i, vac->status, test);
-        }
     }
     else if(vac->salle_count > 0)
     {
@@ -64,7 +59,7 @@ void fermer()
 
     if(munmap(vac, sb.st_size) == -1)
         raler("munmap");
-    shm_unlink("/vaccinodrome");
+    shm_unlink("/freitagmatthieu");
 }
 
 int main (int argc, char *argv [])

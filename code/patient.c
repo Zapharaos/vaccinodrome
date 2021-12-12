@@ -12,7 +12,7 @@
 
 void patient(char *nom)
 {
-    int fd = shm_open("/vaccinodrome", O_RDWR, 0666);
+    int fd = shm_open("/freitagmatthieu", O_RDWR, 0666);
     if(fd == -1) exit(EXIT_FAILURE);
 
     struct stat sb;

@@ -11,7 +11,7 @@
 
 void nettoyer()
 {
-    int fd = shm_open("/vaccinodrome", O_RDONLY, 0666);
+    int fd = shm_open("/freitagmatthieu", O_RDONLY, 0666);
 
     if(fd == -1) return; // deja supprime
 
@@ -29,7 +29,9 @@ void nettoyer()
     // if(munmap(vac, sb.st_size) == -1)
     //     raler("munmap");
 
-    shm_unlink("/vaccinodrome");
+    // doit aussi post le semaphore ?
+
+    shm_unlink("/freitagmatthieu");
 }
 
 int main (int argc, char *argv [])

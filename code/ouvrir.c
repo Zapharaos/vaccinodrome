@@ -12,7 +12,7 @@
 
 void ouvrir(int n, int m, int t)
 {
-    int fd = shm_open("/vaccinodrome", O_RDWR | O_EXCL | O_CREAT, 0666);
+    int fd = shm_open("/freitagmatthieu", O_RDWR | O_EXCL | O_CREAT, 0666);
 
     // vérifier qu'il existe pas déjà + TESTER ERRNO
     if( fd == -1 ) raler("shm_open ouvrir");

@@ -4,6 +4,8 @@
 
 #include "asem.h" // asem_t
 
+#define FILE_NAME "/freitag_matthieu_21814083"
+
 /** @enum individu_type
  *  @brief This enum describes the type of un individu
  */
