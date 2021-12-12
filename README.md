@@ -24,7 +24,7 @@ fermer.c : closes the vaccinodrome after everyone has left and cleans it.
 
 nettoyer.c : cleans the vaccinodrome.
 ```
-./fermer
+./nettoyer
 ```
 
 medecin.c : starts one doctor.
