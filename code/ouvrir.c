@@ -12,35 +12,40 @@
 
 void ouvrir(int n, int m, int t)
 {
-    int fd = shm_open("/vaccinodrome", O_RDWR | O_EXCL | O_CREAT, 0666);
+    int fd = shm_open(FILE_NAME, O_RDWR | O_EXCL | O_CREAT, 0666);
+    CHECK(fd); // existe deja
 
-    // vérifier qu'il existe pas déjà + TESTER ERRNO
-    if( fd == -1 ) raler("shm_open ouvrir");
-
-    ftruncate(fd , sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m));
-    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m), PROT_WRITE, MAP_SHARED, fd, 0);
+    size_t lg = sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m);
+    CHECK(ftruncate(fd, lg));
+    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, lg, 
+                                                PROT_WRITE, MAP_SHARED, fd, 0);
+    NCHECK(vac);
 
     vac->n = n; // nombre de sièges
     vac->m = m; // nombre de médecins
-    vac->t = t * 1000; // temps de la vaccination, en ms
+    vac->t = t * 1000; // temps de la vaccination en microsecondes
 
     vac->status = OUVERT; // statut du vaccinodrome
     vac->med_count = 0; // nombre de médecins actifs
-    vac->pat_count = 0; // nombre de patients dans la salle d'attente + dans les box
+    vac->pat_count = 0; // nombre de patients dans la salle d'attente + box
     vac->salle_count = 0; // nombre de patients dans la salle d'attente
 
-    asem_init (&(vac->vide), "vide", 1, 0);
-    asem_init (&(vac->pat_vide), "pat_vide", 1, 0);
+    // post med_count = pat_count = 0
+    CHECK(asem_init(&(vac->vide), "vide", 1, 0));
+    // post pat_count = 0
+    CHECK(asem_init(&(vac->pat_vide), "pat_vide", 1, 0));
+    // salle d'attente du vaccinodrome côté médecin
+    CHECK(asem_init(&(vac->is_in_salle), "in_salle", 1, 0));
+    // salle d'attente du vaccinodrome côté patient
+    CHECK(asem_init(&(vac->salle_attente), "salle_att", 1, vac->n));
+    // acceder a un siege
+    CHECK(asem_init(&(vac->edit_salle), "edit_salle", 1, 1));
 
-    asem_init (&(vac->is_in_salle), "in_salle", 1, 0); // salle d'attente du vaccinodrome côté médecin
-    asem_init (&(vac->salle_attente), "salle_att", 1, vac->n); // salle d'attente du vaccinodrome côté patient
-    asem_init (&(vac->edit_salle), "edit_salle", 1, 1);
-
-    for(int i=0; i < (n+m); i++)
+    for(int i=0; i < (n+m); i++) // nombre max de patients en meme temps : n+m
     {
         vac->patient[i].status = LIBRE;
-        asem_init(&(vac->patient[i].s_patient), "patient", 1, 0);
-        asem_init(&(vac->patient[i].s_medecin), "medecin", 1, 0);
+        CHECK(asem_init(&(vac->patient[i].s_patient), "patient", 1, 0));
+        CHECK(asem_init(&(vac->patient[i].s_medecin), "medecin", 1, 0));
     }
 }
 

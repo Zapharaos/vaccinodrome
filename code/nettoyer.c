@@ -11,25 +11,17 @@
 
 void nettoyer()
 {
-    int fd = shm_open("/vaccinodrome", O_RDONLY, 0666);
-
+    int fd = shm_open(FILE_NAME, O_RDWR, 0666);
     if(fd == -1) return; // deja supprime
 
-    // struct stat sb;
-    // if (fstat(fd, &sb) < 0)
-    //     raler("Erreur lstat");
+    struct stat sb;
+    CHECK(fstat(fd, &sb));
 
-    // ftruncate(fd , sizeof(vaccinodrome_t));
-    // vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size,
+                                    PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    NCHECK(vac);
     
-    // asem_destroy (&(vac->vide));
-    // asem_destroy (&(vac->pat_vide));
-    // asem_destroy (&(vac->salle_attente));
-
-    // if(munmap(vac, sb.st_size) == -1)
-    //     raler("munmap");
-
-    shm_unlink("/vaccinodrome");
+    CHECK(clean_file(vac, sb.st_size)); // clean
 }
 
 int main (int argc, char *argv [])
