@@ -41,6 +41,8 @@ void ouvrir(int n, int m, int t)
     // acceder a un siege
     CHECK(asem_init(&(vac->edit_salle), "edit_salle", 1, 1));
 
+    CHECK(asem_init(&(vac->medecin), "med", 1, 1));
+
     for(int i=0; i < (n+m); i++) // nombre max de patients en meme temps : n+m
     {
         vac->patient[i].status = LIBRE;

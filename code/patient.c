@@ -22,39 +22,45 @@ void patient(char *nom)
                                     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     NCHECK(vac);
 
-    // // check si fermé
-    // if(vac->status == FERME) exit(EXIT_FAILURE);
-
-    // attend d'avoir une place de libre
+    // attend d'avoir une place de libre dans la salle d'attente
     CHECK(asem_wait(&(vac->salle_attente)));
 
-    // check si place s'est libérée mais que vaccinodrome a fermé entre temps
-    // sinon wait avant 1er check si fermé
+    // verifie si c'est ferme : on repart 
     if(vac->status == FERME)
     {
-        CHECK(asem_post(&(vac->salle_attente))); // libère place
-        exit(EXIT_FAILURE);
+        CHECK(asem_post(&(vac->salle_attente))); // libère la place 
+        raler("patient.c : vac ferme");
     }
-    
-    // semaphore ?
+
+    // debut section critique commune : entre dans le vaccinodrome
+    CHECK(asem_wait(&(vac->edit_salle)));
+
     vac->salle_count++; // nombre de patients dans la salle d'attente
     vac->pat_count++; // nombre de patients dans le vaccinodrome
+
+    // fin section critique commune
+    CHECK(asem_post(&(vac->edit_salle)));
+
     int id_patient; // id du patient
 
-    CHECK(asem_wait(&(vac->edit_salle))); // une installation à la fois
-    // il y a forcément au moins un patient car on a passé le wait ligne 29
+    // debut section critique commune : patient s'installe dans la salle 
+    CHECK(asem_wait(&(vac->edit_salle)));
+
+    // il y a au moins un siege de libre car on a passé le wait ligne 26
     for(int i=0; i < (vac->n + vac->m); i++)
     {
         if(vac->patient[i].status == LIBRE)
         {
             vac->patient[i].status = OCCUPE;
-            strncpy(vac->patient[i].nom, nom, MAX_NOMSEM + 1);
-            asem_post(&(vac->edit_salle)); // fini de s'installer
+            CHECK(asem_post(&(vac->edit_salle))); // fini de s'installer
             id_patient = i;
-            printf("patient %s siege %d\n", nom, id_patient);
             break;
         }
     }
+
+    // hors critique car impossible de modifier si statut != LIBRE
+    strncpy(vac->patient[id_patient].nom, nom, MAX_NOMSEM + 1);
+    printf("patient %s siege %d\n", nom, id_patient);
 
     CHECK(asem_post(&(vac->is_in_salle))); // libere place sale d'attente
     CHECK(asem_wait(&(vac->patient[id_patient].s_patient))); // attend medecin
@@ -66,14 +72,18 @@ void patient(char *nom)
     CHECK(asem_post(&(vac->patient[id_patient].s_medecin))); // rejoint médecin
     CHECK(asem_wait(&(vac->patient[id_patient].s_patient))); // attend fin vac
 
-    // quitte le vaccinodrome
-    // semaphore ?
+    // debut section critique commune : patient quitte le vaccinodrome
+    CHECK(asem_wait(&(vac->edit_salle)));
+
     vac->pat_count--;
     vac->patient[id_patient].status = LIBRE;
 
-    // dernier patient signale que les medecins peuvent partir
+    // vac ferme + dernier patient : signale aux medecins qu'ils peuvent partir
     if(vac->status == FERME && vac->pat_count == 0)
         CHECK(asem_post(&(vac->pat_vide)));
+
+    // fin section critique commune : patient a quitter le vaccinodrome
+    CHECK(asem_post(&(vac->edit_salle)));
 }
 
 int main (int argc, char *argv [])

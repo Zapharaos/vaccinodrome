@@ -21,14 +21,30 @@ void fermer()
                                     PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     NCHECK(vac);
 
-    vac->status = FERME; // statut du vaccinodrome
+    // debut section critique commune : modifier statut + prevenir medecins ?
+    CHECK(asem_wait(&(vac->edit_salle)));
+
+    vac->status = FERME; // le vaccinodrome ferme
 
     if(vac->med_count > 0) // si il reste encore des médecins
+    {
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
         for(int i=0; i < vac->m; i++) // pour chaque médecin
-            CHECK(asem_post(&(vac->is_in_salle))); // post prévenir fermeture
+            CHECK(asem_post(&(vac->is_in_salle))); // prévenir de la fermeture
+    }
+    else // pas de médecin à attendre
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
 
-    if(vac->med_count != 0) // attendre que tout le monde soit rentré
-        CHECK(asem_wait(&(vac->vide)));
+    // debut section critique commune : acces med_count
+    CHECK(asem_wait(&(vac->edit_salle)));
+
+    if(vac->med_count != 0) // si il reste encore des medecins
+    {
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
+        CHECK(asem_wait(&(vac->vide))); // attendre medecins partent
+    }
+    else // pas de médecin à attendre
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
 
     CHECK(clean_file(vac, sb.st_size)); // clean
 }

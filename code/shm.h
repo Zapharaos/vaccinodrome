@@ -111,6 +111,7 @@ struct vaccinodrome {
     asem_t is_in_salle;
     asem_t salle_attente;
     asem_t edit_salle;
+    asem_t medecin;
     patient_t patient[];
 };
 typedef struct vaccinodrome vaccinodrome_t;
