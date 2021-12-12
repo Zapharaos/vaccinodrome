@@ -19,81 +19,56 @@ void medecin()
     if (fstat(fd, &sb) < 0)
         raler("Erreur lstat");
 
-    ftruncate(fd , sizeof(vaccinodrome_t));
     vaccinodrome_t *vac = (vaccinodrome_t *) mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    patient_t *patient = (void *) vac + sizeof(vaccinodrome_t);
 
     // check si c'est fermé
     if(vac->status == FERME) return; //exit(EXIT_FAILURE);
 
     int id_medecin = vac->med_count;
-    int id_patient;
+    //int id_patient;
 
     vac->med_count++;
-
-    // while pat_count
-    // while(vac->salle_count > 0) // tant que patient à traiter
-    // {
-    //     asem_wait(&(vac->medecins)); // un tirage au sort à la fois
-    //     id_patient = -1;
-    //     for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
-    //     {
-    //         if(vac->patient[i].status == OCCUPE)
-    //         {
-    //             vac->patient[i].status = TRAITEMENT;
-    //             printf("%s\n", vac->patient[i].nom);
-    //             id_patient = i;
-    //             break;
-    //         }
-    //     }
-    //     asem_post(&(vac->medecins)); // fin tirage au sort
-    //     if(id_patient == -1) continue; // aucun patient dans la salle d'attente
-
-    //     vac->patient[id_patient].id_medecin = id_medecin;
-
-    //     asem_post(&(vac->patient[id_patient].patient)); // cherche le patient
-    //     asem_wait(&(vac->patient[id_patient].medecin)); // attend que patient arrive dans la salle
-
-    //     usleep(vac->t); // pas certain que le cast soit correct ici
-
-    //     asem_post(&(vac->patient[id_patient].patient)); // libère le patient
-    //     // asem_post(&(vac->patient[id_patient]->medecin)); // libère médecin ???
-    // }
 
     while(1)
     {
         adebug (0, "FERME(0) = %d && salle_count = %d", vac->status, vac->salle_count);
         if(vac->status == FERME && vac->salle_count == 0) break;
  
-        asem_wait(&(vac->trouverunnom));
+        asem_wait(&(vac->is_in_salle));
 
         adebug (0, "FERME(0) = %d && salle_count = %d", vac->status, vac->salle_count);
         if(vac->status == FERME && vac->salle_count == 0) break;
 
-        asem_wait(&(vac->medecins)); // un tirage au sort à la fois
+        asem_wait(&(vac->edit_salle)); // un tirage au sort à la fois
         for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
         {
-            if(vac->patient[i].status == OCCUPE)
+            if(patient->status == OCCUPE)
             {
-                vac->patient[i].status = TRAITEMENT;
+                patient->status = TRAITEMENT;
                 vac->salle_count--;
-                asem_post(&(vac->medecins)); // fin tirage au sort
-                printf("%s\n", vac->patient[i].nom);
-                id_patient = i;
+                printf("%s\n", patient->nom);
+                //id_patient = i;
                 break;
             }
+            patient = (void *) patient + 1;
         }
+        asem_post(&(vac->edit_salle)); // fin tirage au sort
 
         if(vac->status == FERME && vac->salle_count == 0)
             asem_post(&(vac->fermer)); // post fermer
 
-        vac->patient[id_patient].id_medecin = id_medecin;
+        // adebug (0, "id = %d", (&(vac->patient[id_patient]))->id_medecin);
 
-        asem_post(&(vac->patient[id_patient].patient)); // cherche le patient
-        asem_wait(&(vac->patient[id_patient].medecin)); // attend que patient arrive dans la salle
+        patient->id_medecin = id_medecin;
+
+        asem_post(&(patient->s_patient)); // cherche le patient
+        asem_wait(&(patient->s_medecin)); // attend que patient arrive dans la salle
 
         usleep(vac->t); // pas certain que le cast soit correct ici
 
-        asem_post(&(vac->patient[id_patient].patient)); // libère le patient
+        asem_post(&(patient->s_patient)); // libère le patient
         // asem_post(&(vac->patient[id_patient]->medecin)); // libère médecin ???
     }
 
@@ -129,3 +104,43 @@ int main (int argc, char *argv [])
         //     patient = rand() % vac->n; // id patient random dans la salle d'attente
         // } while(vac->siege[patient]->status == LIBRE);
         // asem_post(&(vac->medecin)); // fin tirage au sort
+
+
+
+
+
+
+
+
+
+
+
+
+            // while pat_count
+    // while(vac->salle_count > 0) // tant que patient à traiter
+    // {
+    //     asem_wait(&(vac->medecins)); // un tirage au sort à la fois
+    //     id_patient = -1;
+    //     for(int i=0; i < (vac->n + vac->m); i++) // pat_count ???? n+m ???
+    //     {
+    //         if(vac->patient[i].status == OCCUPE)
+    //         {
+    //             vac->patient[i].status = TRAITEMENT;
+    //             printf("%s\n", vac->patient[i].nom);
+    //             id_patient = i;
+    //             break;
+    //         }
+    //     }
+    //     asem_post(&(vac->medecins)); // fin tirage au sort
+    //     if(id_patient == -1) continue; // aucun patient dans la salle d'attente
+
+    //     vac->patient[id_patient].id_medecin = id_medecin;
+
+    //     asem_post(&(vac->patient[id_patient].patient)); // cherche le patient
+    //     asem_wait(&(vac->patient[id_patient].medecin)); // attend que patient arrive dans la salle
+
+    //     usleep(vac->t); // pas certain que le cast soit correct ici
+
+    //     asem_post(&(vac->patient[id_patient].patient)); // libère le patient
+    //     // asem_post(&(vac->patient[id_patient]->medecin)); // libère médecin ???
+    // }
