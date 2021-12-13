@@ -88,6 +88,9 @@ typedef struct patient patient_t;
 /** @var asem_t::pat_vide
 *  'pat_vide' contient un semaphore null indiquant qu'il ne reste de patients
 */
+/** @var asem_t::dernier
+*  'dernier' contient un semaphore null indiquant qu'il ne reste de patients
+*/
 /** @var asem_t::salle_m
 *  'salle_m' contient un semaphore null pour la salle d'attente (pour medecin)
 */

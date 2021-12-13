@@ -58,9 +58,11 @@ int clean_file(vaccinodrome_t *vac, size_t lg)
 {
     CHECK(asem_destroy(&(vac->vide)));
     CHECK(asem_destroy(&(vac->pat_vide)));
+    CHECK(asem_destroy(&(vac->dernier)));
     CHECK(asem_destroy(&(vac->salle_m)));
     CHECK(asem_destroy(&(vac->salle_p)));
     CHECK(asem_destroy(&(vac->edit_salle)));
+    CHECK(asem_destroy(&(vac->medecin)));
 
     for(int i=0; i < (vac->n+vac->m); i++)
     {

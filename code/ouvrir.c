@@ -27,20 +27,20 @@ void ouvrir(int n, int m, int t)
     vac->pat_count = 0; // nombre de patients dans la salle d'attente + box
     vac->salle_count = 0; // nombre de patients dans la salle d'attente
 
-    // post med_count = pat_count = 0
+    // post med_count = pat_count = 0 ; signaler vac vide
     CHECK(asem_init(&(vac->vide), "vide", 1, 0));
-    // post pat_count = 0
+    // post pat_count = 0 ; signaler vac sans patients
     CHECK(asem_init(&(vac->pat_vide), "pat_vide", 1, 0));
+    // post pat_count = 0 ; signaler vac sans patients à fermer.c
+    CHECK(asem_init(&(vac->dernier), "dernier", 1, 0));
     // salle d'attente du vaccinodrome côté médecin
-    CHECK(asem_init(&(vac->salle_m), "in_salle", 1, 0));
+    CHECK(asem_init(&(vac->salle_m), "salle_m", 1, 0));
     // salle d'attente du vaccinodrome côté patient
-    CHECK(asem_init(&(vac->salle_p), "salle_att", 1, vac->n));
+    CHECK(asem_init(&(vac->salle_p), "salle_p", 1, vac->n));
     // sections critiques communes (medecins, patient, fermer)
     CHECK(asem_init(&(vac->edit_salle), "edit_salle", 1, 1));
     // sections critiques des medecins 
     CHECK(asem_init(&(vac->medecin), "med", 1, 1));
-
-    CHECK(asem_init(&(vac->dernier), "dernier", 1, 0));
 
     for(int i=0; i < (n+m); i++) // nombre max de patients en meme temps : n+m
     {
