@@ -7,7 +7,7 @@
 . ./ftest.sh
 
 ATT=1           # nb de sièges dans la salle d'attente
-MED=5          # un nombre arbitrairement grand de médecins
+MED=40          # un nombre arbitrairement grand de médecins
 TVAX=0          # durée de vaccination
 
 # Nettoyer pour éviter des suprises
