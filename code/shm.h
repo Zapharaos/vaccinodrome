@@ -113,6 +113,7 @@ struct vaccinodrome {
     int salle_count;
     asem_t vide;
     asem_t pat_vide;
+    asem_t dernier;
     asem_t salle_m;
     asem_t salle_p;
     asem_t edit_salle;

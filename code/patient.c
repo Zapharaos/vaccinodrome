@@ -20,16 +20,20 @@ void patient(char *nom)
     // attend d'avoir une place de libre dans la salle d'attente
     CHECK(asem_wait(&(vac->salle_p)));
 
-    // verifie si c'est ferme : on repart 
-    if(vac->status == FERME)
+    // debut section critique commune : lire le statut
+    CHECK(asem_wait(&(vac->edit_salle)));
+    if(vac->status == FERME) // verifie si c'est ferme : on repart 
     {
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
         CHECK(asem_post(&(vac->salle_p))); // libère la place 
         raler("patient.c : vac ferme");
     }
+    else
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
 
     // debut section critique commune : entre dans le vaccinodrome
     CHECK(asem_wait(&(vac->edit_salle)));
-
+    
     vac->salle_count++; // nombre de patients dans la salle d'attente
     vac->pat_count++; // nombre de patients dans le vaccinodrome
 
@@ -57,10 +61,11 @@ void patient(char *nom)
     strncpy(vac->patient[id_patient].nom, nom, MAX_NOMSEM + 1);
     printf("patient %s siege %d\n", nom, id_patient);
 
-    CHECK(asem_post(&(vac->salle_m))); // libere place sale d'attente
+    CHECK(asem_post(&(vac->salle_m))); // installe : previent les medecins 
     CHECK(asem_wait(&(vac->patient[id_patient].s_patient))); // attend medecin
     CHECK(asem_post(&(vac->salle_p))); // libere place sale d'attente
 
+    // hors critique car impossible de modifier si statut != LIBRE
     int id_medecin = vac->patient[id_patient].id_medecin; // recupere id_med
     fprintf(stdout, "patient %s medecin %d\n", nom, id_medecin);
 
@@ -73,9 +78,11 @@ void patient(char *nom)
     vac->pat_count--;
     vac->patient[id_patient].status = LIBRE;
 
-    // vac ferme + dernier patient : signale aux medecins qu'ils peuvent partir
-    if(vac->status == FERME && vac->pat_count == 0)
-        CHECK(asem_post(&(vac->pat_vide)));
+    if(vac->status == FERME && vac->pat_count == 0) // dernier patient
+    {
+        CHECK(asem_post(&(vac->dernier))); // signale fin à fermer.c
+        CHECK(asem_post(&(vac->pat_vide))); // signale medecins de partir
+    }
 
     // fin section critique commune : patient a quitter le vaccinodrome
     CHECK(asem_post(&(vac->edit_salle)));

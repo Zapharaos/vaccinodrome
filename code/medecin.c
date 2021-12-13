@@ -17,8 +17,15 @@ void medecin()
     int lg = -1; // flags fonction, lg vaudra la taille de fd apres l'appel
     vaccinodrome_t *vac = get_vaccinodrome(fd, &lg);
 
-    // verifie si ferme, cool pas besoin de travailler aujourd'hui
-    if(vac->status == FERME) return;
+    // debut section critique commune : lire le statut + entrer vaccinodrome
+    CHECK(asem_wait(&(vac->edit_salle)));
+    if(vac->status == FERME) // verifie si ferme
+    {
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
+        return;
+    }
+    else
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
 
     // debut section critique des medecins : entre dans le vaccinodrome
     CHECK(asem_wait(&(vac->medecin)));
@@ -87,6 +94,7 @@ void medecin()
     CHECK(asem_wait(&(vac->medecin)));
 
     vac->med_count--;
+    CHECK(asem_post(&(vac->pat_vide))); // libère les derniers médecins
     if(vac->med_count == 0) // dernier medecin : signale fermeture du vac
         CHECK(asem_post(&(vac->vide)));
 

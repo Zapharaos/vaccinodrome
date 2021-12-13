@@ -40,6 +40,8 @@ void ouvrir(int n, int m, int t)
     // sections critiques des medecins 
     CHECK(asem_init(&(vac->medecin), "med", 1, 1));
 
+    CHECK(asem_init(&(vac->dernier), "dernier", 1, 0));
+
     for(int i=0; i < (n+m); i++) // nombre max de patients en meme temps : n+m
     {
         vac->patient[i].status = LIBRE;

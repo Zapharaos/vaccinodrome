@@ -21,6 +21,17 @@ void fermer()
 
     vac->status = FERME; // le vaccinodrome ferme
 
+    if(vac->pat_count > 0)
+    {
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
+        CHECK(asem_wait(&(vac->dernier))); // dernier patient
+    }
+    else
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
+
+    // debut section critique commune : modifier statut + prevenir medecins
+    CHECK(asem_wait(&(vac->edit_salle)));
+
     if(vac->med_count > 0) // si il reste encore des médecins : prevenir
     {
         CHECK(asem_post(&(vac->edit_salle))); // fin section critique

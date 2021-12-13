@@ -25,6 +25,7 @@
 # couverture-et-tests	: automatise les tests avec rapport de couverture
 #
 
+NB = 50
 COV = -coverage
 
 CFLAGS = -g -Wall -Wextra -Werror $(COVERAGE)
@@ -58,6 +59,13 @@ gcov:
 
 test: $(PROGS)
 	@for i in test-*.sh ; do echo $$i ; sh timeout.sh $$i || exit 1 ; done
+
+long: $(PROGS)
+	n=$(NB); \
+        while [ $${n} -gt 0 ] ; do \
+            make test ; \
+            n=`expr $$n - 1`; \
+        done; \
 
 couverture-et-tests: clean coverage test gcov
 

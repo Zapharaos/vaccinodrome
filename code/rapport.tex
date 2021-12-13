@@ -9,6 +9,9 @@
 \usepackage[sf,bf]{titlesec}
 \usepackage[margin=0.75in]{geometry}
 \usepackage{tabularx}
+\usepackage{graphicx}  % image
+\usepackage{float} % image
+\usepackage{hyperref} % link
 
 \makeatletter
 \newenvironment{expl}{%
@@ -24,209 +27,402 @@
   {\end{list}}
 \makeatother
 
-% Indiquez votre prénom (en minuscules) et votre nom (en majuscules)
-\title{Rapport de TP \\ Architecture des systèmes d'exploitation}
-\author{\underline{Prénom} \underline{NOM}}
-\date{Novembre 2021}
-
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+    \begin{center}
+        \vspace*{4.5cm}
+        {\Huge\scshape Rapport de TP}\\[1.5cm]
+        {\large « Vaccinodrome »}\\[0.5cm]
+        {\large Date de rendu: 15/12/2021}\\[0.5cm]
+        {\large Matthieu FREITAG}\\[1cm]
+        \begin{figure}[H]
+            \centering
+            \includegraphics[scale=0.5]{logo_unistra.png}\\[1cm]
+        \end{figure}
+        {\large UFR Math-Info - Université de Strasbourg}\\[0.5cm]
+        {\large 3\textsuperscript{ième} année de Licence Informatique}\\[0.5cm]
+        {\large Architecture des systèmes d'exploitation }\\[4cm]
+        {\large \href{https://github.com/Zapharaos/Vaccinodrome}{https://github.com/Zapharaos/Vaccinodrome}}
+        \vfill
+    \end{center}
+\end{titlepage}
+\clearpage
 
 % Mettez une table des matières si votre rapport contient plus
 % de 3 pages ou si vous ne suivez pas le plan suggéré :
-%\tableofcontents
+
+\tableofcontents
+\clearpage 
 
 % Dans votre rapport final, supprimez toutes les explications
 % (c'est-à-dire tous les environnements \begin{expl} ... \end{expl}).
-\begin{expl}
-  Ce document vous suggère une trame de rapport de TP.
-
-  Vous pouvez utiliser le source \LaTeX{} de ce document comme
-  base (voir également la cible \texttt{rapport.pdf} dans le fichier
-  \texttt{Makefile}), mais vous pouvez utiliser tout autre outil
-  de votre choix, à condition de rendre un rapport en PDF.
-\end{expl}
 
 \section{Introduction}
 
-\begin{expl}
-  Rappelez brièvement le sujet et esquissez les principes de votre
-  solution (une dizaine de lignes maximum).
-\end{expl}
+L’Organisation Mondiale de la Santé signale l’arrivée prochaine du Covid-23 avec un risque de pandémie interplanétaire. La société Covid Corp Inc., chargée de la vaccination par le gouvernement nouvellement nommé de la planète Terre, doit simuler la mise en place de vaccinodromes. Malheureusement, les sources des programmes de simulation des vaccinodromes de la précédente pandémie, le Covid-19, ont été perdus derrière une pile de masques.
+\smallskip \par On se propose donc, pour palier à cette perte, d'étudier et de réaliser l'implémentation en language C d'une simulation des vaccinodromes. Pour ce faire, on se servira de la mémoire partagée, d'une implémentation préfaite des semaphores et d'un ensemble de jeux de tests préfourni. 
+\smallskip \par On implémentera \texttt{ouvrir.c} pour initaliser la mémoire partagée et ouvrir un vaccinodrome, \texttt{fermer.c} pour signaler la fermeture du vaccinodrome avant d'attendre le départ des protagonistes et de nettoyer la mémoire partagée. On se servia également de \texttt{nettoyer.c} pour la nettoyer la mémoire partagée et de \texttt{patient.c} (respectivement \texttt{médecin.c}) pour simuler un patient  (respectivement médecin).
+
+\newpage 
 
 \section{Structure de données}
 
 \subsection{Structures de données partagées}\label{sec-shm}
 
-\begin{expl}
-  Décrivez ici la structure de votre segment de mémoire partagée,
-  ainsi que toutes les structures annexes que vous y utilisez. Pour
-  chaque donnée, indiquez son nom, sa nature (entier, sémaphore,
-  tableau de X...), sa valeur initiale, et décrivez en quelques
-  mots son usage.
-
-  Par exemple, si le vaccinodrome disposait d'un distributeur de gel
-  hydroalcoolique à l'usage des patients, on trouverait la description
-  suivante~:
-
+\bigskip La structure principale où se trouve ma mémoire partagée est \texttt{vaccinodrome\_t} :
+\bigskip \newline
   \begin{tabularx}{\linewidth}{|l|l|l|X|}
     \hline
     % \multicolumn{4}{|l|}{Distributeur de gel
     %   (\texttt{struct distr\_gelha})}
     % \\ \hline
     Champ & Type & Init & Description \\ \hline%
-    dg & distrib\_t & -- & distributeur (cf. documentation de
-    \texttt{libhygiene}) \\ \hline%
-    sm\_dg & asem\_t & 1 & sémaphore utilisé pour synchroniser l'accès
-    au distributeur \\ \hline%
+    n & int & -- & le nombre de sieges \\ \hline%
+    m & int & -- & le nombre de box \\ \hline%
+    t & useconds\_t & -- & la duree d'une vaccination (en millisecondes) \\ \hline%
+    status & vac\_status\_t & \texttt{OUVERT} & le statut du vaccinodrome (cf. documentation de
+    \texttt{vac\_status\_t})\\ \hline%
+    med\_count & int & 0 & le nombre de médecin dans le vaccinodrome \\ \hline%
+    pat\_count & int & 0 & le nombre de patient dans le vaccinodrome \\ \hline%
+    salle\_count & int & 0 & le nombre de patient dans la salle d'attente \\ \hline%
+    vide & asem\_t & 0 & sémaphore pour indiquer que le vaccinodrome est vide \\ \hline%
+    pat\_vide & asem\_t & 0 & sémaphore pour indiquer qu'il ne reste aucun patient aux médecins\\ \hline%
+    fermer & asem\_t & 1 & sémaphore pour indiquer qu'il ne reste aucun patients à fermer \\ \hline%
+    salle\_m & asem\_t & 0 & sémaphore pour simuler la salle d'attente (côté médecin)\\ \hline%
+    salle\_p & asem\_t & n & sémaphore pour simuler la salle d'attente (côté patient)\\ \hline%
+    edit\_salle & asem\_t & 1 & sémaphore pour les sections critiques communes \\ \hline%
+    medecin & asem\_t & 1 & sémaphore pour les sections critiques des médecins \\ \hline%
+    patient & patient\_t [] & -- & tableau de taille n*m pour simuler les patients en salle d'attente et dans les box des médecins\\ \hline%
+  \end{tabularx}
+  
+\bigskip La structure \texttt{vaccinodrome\_t} fait appel à l'enumération \texttt{vac\_status\_t} :
+\bigskip \newline
+  \begin{tabularx}{\linewidth}{|l|l|X|}
+    \hline
+    % \multicolumn{4}{|l|}{Distributeur de gel
+    %   (\texttt{struct distr\_gelha})}
+    % \\ \hline
+    Champ & Valeur & Description \\ \hline%
+    \texttt{FERME} & 0 & le vaccinodrome est fermé \\ \hline%
+    \texttt{OUVERT} & 1 & le vaccinodrome est ouvert \\ \hline%
   \end{tabularx}
 
-  On considère que tout ce qui est décrit dans cette section existe
-  depuis la création du vaccinodrome jusqu'à sa fermeture.
-\end{expl}
+\bigskip La structure \texttt{vaccinodrome\_t} fait également appel à un tableau de structures \texttt{patient\_t} :
+\bigskip \newline
+  \begin{tabularx}{\linewidth}{|l|l|l|X|}
+    \hline
+    % \multicolumn{4}{|l|}{Distributeur de gel
+    %   (\texttt{struct distr\_gelha})}
+    % \\ \hline
+    Champ & Type & Init & Description \\ \hline%
+    status & pat\_status\_t & \texttt{LIBRE} & le statut du patient (cf. documentation de
+    \texttt{pat\_status\_t})\\ \hline%
+    nom & char [] & -- & le nom du patient \\ \hline%
+    id\_medecin & int & -- & l'id du medecin qui traite le patient \\ \hline%
+    s\_patient & asem\_t & 0 & sémaphore pour indiquer que le patient doit attendre \\ \hline%
+    s\_medecin & asem\_t & 0 & sémaphore pour indiquer que le médecin doit attendre \\ \hline%
+  \end{tabularx}
 
+\bigskip La structure \texttt{patient\_t} fait appel à l'enumération \texttt{pat\_status\_t} :
+\bigskip \newline
+  \begin{tabularx}{\linewidth}{|l|l|X|}
+    \hline
+    % \multicolumn{4}{|l|}{Distributeur de gel
+    %   (\texttt{struct distr\_gelha})}
+    % \\ \hline
+    Champ & Valeur & Description \\ \hline%
+    \texttt{LIBRE} & 0 & la place est libre \\ \hline%
+    \texttt{OCCUPE} & 1 & la place est occupée \\ \hline%
+    \texttt{TRAITEMENT} & 2 & la place est un box et le patient s'y fait vacciner \\ \hline%
+  \end{tabularx}
+  
 \subsection{Structures de données non partagées}
 
-\begin{expl}
-  Indiquez toutes les données conservées par les processus mais non
-  partagées. La forme est la même que dans la section précédente.
-  Précisez aussi à quel moment ces données sont créées et
-  initialisées.
-\end{expl}
+L'implémentation pour laquelle je me suis décidé n'implique pas d'utiliser des données non partagées. Chaque variable ou structure de données utilisée est accessible via la mémoire partagée, mis à part deux variables dont je me sers pour stocker les identifiants des médecins et des patients. J'estime que les détailler ici ne serait pas pertinent étant donné que leur utilisation est triviale.
+
+\newpage 
 
 \section{Synchronisations}
 
-\begin{expl}
-  Chacune des sous-sections suivantes doit décrire un aspect de la
-  synchronisation. Elles ont toutes la même organisation, et doivent
-  contenir deux ou trois parties clairement délimitées.
-
-  \begin{enumerate}
-
-  \item La première partie décrit tous les objets impliqués dans la
-    synchronisation de l'accueil des patients dans le vaccinodrome. Il
-    s'agit des données «~normales~» (par exemple un entier) et des
-    sémaphores. Pour chacun de ces éléments, précisez si il est
-    rattaché au vaccinodrome globalement ou à un patient, ou encore à
-    un médecin. Par exemple, si le vaccinodrome était muni d'un
-    distributeur de gel hydroalcoolique grâce auxquels les patients
-    peuvent se nettoyer les mains, il faudrait mentionner~:
-
-    \begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
-      \hline%
-      sm\_dg & asem\_t & le sémaphore représentant le nombre de
-      distributeurs \underline{du vaccinodrome} (voir
-      section~\ref{sec-shm}) \\ \hline%
-      monid & int & le nom %
-      \underline{\raisebox{0pt}[\height][0pt]{du patient}} \\ \hline%
-    \end{tabularx}
-
-  \item La seconde partie doit contenir un pseudo-code de ce
-    qu'exécute \emph{chaque} acteur impliqué (le patient, le médecin,
-    autres). Seuls les aspects importants doivent être présentés~:
-    opérations sur les sémaphores, affectation de valeurs aux
-    variables partagées... Le reste (par exemple les messages liés à
-    \texttt{DEBUG\_OUTPUT}) ne doivent pas apparaître ici. Dans
-    l'exemple des distributeurs de gel, le pseudo-code serait~:
-
-\begin{verbatim}
-// Ce code est exécuté par le patient
-P (sm_dg)
-se_laver_les_mains (monid)
-V (sm_dg)
-\end{verbatim}
-
-  \item La troisième partie contient toutes les remarques que vous
-    jugez pertinentes. Vous pouvez par exemple y préciser les
-    conditions de concurrence, ou les éventuelles limitations ou
-    propriétés remarquables de votre solution.
-
-    Dans l'exemple des distributeurs de gel, vous pourriez préciser
-    que vous avez pensé à implémenter à la place une attente limitée
-    dans le temps pour les patients qui portaient des gants en entrant
-    (en expliquant comment vous auriez fait), mais que cela aurait
-    compliqué le code pour un intérêt limité.
-  \end{enumerate}
-
-  Vous pouvez ajouter des sous-sections si vous avez d'autres
-  synchronisations importantes, ou fragmenter celles qui vous sont
-  proposées ci-dessous.
-\end{expl}
-
-
 \subsection{Arrivée d'un patient}\label{arrivee-patient}
 
-\begin{expl}
-  Expliquez dans cette sous-section, conformément aux indications
-  ci-dessus, tout ce qui se passe lorsqu'un patient arrive,
-  \emph{avant} qu'il interagisse avec un médecin (si le vaccinodrome
-  est ouvert) ou reparte. Mentionnez toutes les informations
-  partagées qui sont utilisées et toutes les synchronisations
-  nécessaires.
-\end{expl}
+Le patient est le seul à intérargir ici.
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  salle\_p & asem\_t & sémaphore représentant la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline% 
+  status & vac\_status\_t & le status actuel de vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  salle\_count & int & nombre de patients dans la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  pat\_count & int & nombre de patients dans le vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  n & int & nombre de sièges (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  m & int & nombre de médecins (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  patient & patient\_t [] & tableau de taille n*m pour simuler la salle d'attente (voir \texttt{vaccinodrome\_t})\\ \hline%
+  id\_patient & int & indentifiant du patient (variable locale pour chaque patient) \\ \hline%
+\end{tabularx}
 
+\begin{verbatim}
+P (salle_p)
+SI status == FERME ALORS fin du patient FINSI
+incrementer_compteurs() // salle_count et pat_count
+installation(patient, n+m) // trouver un siege libre et s'installe
+// intéractions avec les médecins
+V (salle_p)
+\end{verbatim}
+
+    Le patient arrive et attend qu'une place se libère dans la salle d'attente. Si le vaccinodrome est fermé, le patient repart. Sinon, il incrémente les compteurs qui correspondent au nombre de patients.
+    Lors de son installation, le patient parcourt le tableau \texttt{patient} de taille \texttt{n+m} jusqu'à trouver un siège libre, s'y installe et y renseigne ses informations. Il y aura forcément au moins une place de libre car le sémaphore \texttt{salle\_p} a été passé.
+    Après son installation, le patient prévient les médecins de son installation et attend qu'on médecin vienne le chercher.
+    
+    \texttt{incrementer\_compteurs()} est dans une section critique car les compteurs sont communs à tous.
+    De la même manière, \texttt{installation()} est également dans une section critique car la liste des places est commune à tous.
+    Les intéractions enre le patient et les médecins ne seront pas détaillées ici, mais elles le seront plus tard.
+  
 \subsection{Arrivée d'un médecin}
 
-\begin{expl}
-  Expliquez dans cette sous-section tout ce qui se passe lorsqu'un
-  médecin arrive, \emph{avant} qu'il interagisse avec un patient.
-\end{expl}
+Le médecin est le seul à intérargir ici.
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  status & vac\_status\_t & le status actuel de vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  med\_count & int & nombre de médecins dans le vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  m & int & nombre de médecins (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  id\_m & int & indentifiant du médecin (variable locale pour chaque médecin) \\ \hline%
+  salle\_m & asem\_t & sémaphore représentant la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline% 
+  salle\_count & int & nombre de patient dans la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+\end{tabularx}
+  
+\begin{verbatim}
+SI status == FERME ALORS fin du médecin FINSI
+SI m == med_count ALORS fin du médecin FINSI // trop de médecins
+incrementer() // med_count 
+TANTQUE VRAI
+    SI status == FERME ET salle_count = 0 ALORS fin du médecin FINSI
+    P (salle_m) // patient ou fermer
+    SI status == FERME ET salle_count = 0 ALORS fin du médecin FINSI
+    // intéractions avec les patients
+FIN TANTQUE
+\end{verbatim}
+
+Le médecin arrive et vérifie le statut du vaccinodrome, s'il est fermé il repart, s'il est ouvert il vérifie combien de médecins sont déjà présent et agit en fonction. S'il y a autant de médecins que de box, il repart, sinon il récupère son identifiant de médecin et incrémente le compteur puis il entre dans la boucle.
+\medskip \par
+A l'intérieur de cette boucle, il vérifie si le vaccinodrome ne s'est pas fermé entre temps et que le nombre de patients dans la salle d'attente n'est pas nul, si oui il repart. Sinon, il attend avec le sémaphore salle\_m. Il se peut qu'aucun patient n'entre et donc que le médecin attende de manière infinie. C'est pourquoi \texttt{fermer.c} peut débloquer les médecins. Auquel cas, le médecin le détecte avec la condition suivante : si le vaccinodrome est fermé et que le nombre de patients dans la salle d'attente est nul alors il peut partir.
+Sinon, c'est qu'un patient est entré dans la salle d'attente et le médecin va le traiter.
+\medskip \par
+\texttt{incrementer()} récupère l'identifiant du médecin et incrémente le compteur \texttt{med\_count}.
+Ce qui se trouve avant la boucle \texttt{TANTQUE} est dans une section critique car les variables utilisées sont communes entre les médecins.
+Les intéractions enre le médecin et les patients ne seront pas détaillées ici, mais elles le seront plus tard.
 
 \subsection{Interactions entre patients et médecins}
 
-\begin{expl}
-  Expliquez ici comment patients et médecins sont «~mis en contact~».
-  Expliquez la stratégie que vous avez choisie, c'est-à-dire comment
-  1) soit un patient trouve un médecin dès qu'un médecin est
-  disponible, 2) soit un médecin trouve un patient dans la salle
-  d'attente. Expliquez également ce qui se passe entre le moment où un
-  médecin et un patient sont mis en contact, et le moment où le
-  patient vacciné peut quitter le vaccinodrome et le médecin s'occuper
-  d'un (éventuel) autre patient.
-\end{expl}
+J'ai décidé d'implémenter la deuxième option : le médecin trouve un patient dans la salle d'attente.
+
+
+\bigskip Médecin lors de l'intéraction avec un patient :
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  status & vac\_status\_t & le status actuel de vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  salle\_count & int & nombre de patient dans la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  salle\_m & asem\_t & sémaphore représentant la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  n & int & nombre de sieèges (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  m & int & nombre de médecins (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  patient & patient\_t [] & tableau de taille n*m pour simuler la salle d’attente (voir \texttt{vaccinodrome\_t})  \\ \hline%
+  patient.status & pat\_status\_t & statut du patient \texttt{patient\_t})\\ \hline%
+  patient.id\_medecin & int & medecin du patient \texttt{patient\_t})\\ \hline%
+  patient.s\_patient & asem\_t & semaphore attente du patient \texttt{patient\_t}) \\ \hline%
+  patient.s\_medecin & asem\_t & semaphore attente du médecin \texttt{patient\_t})\\ \hline%
+  id\_p & int & variable locale pour identifier le patient sélectionné \\ \hline%
+\end{tabularx}
+
+\begin{verbatim}
+TANTQUE VRAI
+    SI status == FERME ET salle_count = 0 ALORS fin du médecin FINSI
+    P (salle_m) // patient ou fermer
+    SI status == FERME ET salle_count = 0 ALORS fin du médecin FINSI
+    id_p = trouver_patient()
+    V (patient[id_p].s_patient) // convoque patient
+    P (patient[id_p].s_medecin) // attend arrive du patient
+    vaccination()
+    V (patient[id_p].s_patient) // libere le patient
+FIN TANTQUE
+\end{verbatim}
+
+Patient lors de l'intéraction avec le médecin :
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  salle\_p & asem\_t & sémaphore représentant la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  patient & patient\_t [] & tableau de taille n*m pour simuler la salle d’attente (voir \texttt{vaccinodrome\_t})  \\ \hline%
+  patient.nom & char[] & le nom du patient \texttt{patient\_t})\\ \hline%
+  patient.id\_medecin & int & medecin du patient \texttt{patient\_t})\\ \hline%
+  patient.s\_patient & asem\_t & semaphore attente du patient \texttt{patient\_t}) \\ \hline%
+  patient.s\_medecin & asem\_t & semaphore attente du médecin \texttt{patient\_t})\\ \hline%
+  id\_patient & int & variable locale pour identifier le siège sélectionné \\ \hline%
+\end{tabularx}
+
+\begin{verbatim}
+P (patient[id_patient].s_patient) // attend arrive du medecin
+V (salle_p) // libere place salle d'attente
+afficher_medecin()
+V (patient[id_patient].s_medecin) // previent medecin de son arrive dans le box
+P (patient[id_patient].s_patient) // attend la fin de la vaccination
+\end{verbatim}
+
+\medskip \par Pour cela, le médecin attend qu'un patient entre dans la salle d'attente puis il parcourt le tableau \texttt{patient} jusqu'à trouver un siège \texttt{OCCUPE}. Il y en aura forcément un étant donné que le sémaphore a été débloqué. Puis le médecin change le statut du patient à \texttt{TRAITEMENT} et y insère son identifiant de médecin. Ensuite, le médecin affiche le nom du patient, il prévient ce même patient qui se trouve dans la salle d'attente et l'attend dans son box (il n'y a pas de structure box à proprement parler mais c'est un moyen pour mieux décrire l'implémentation).
+\medskip \par Comme indiqué précedemment, après être entré dans le vaccinodrome, le patient s'installe dans la salle d'attente et attend qu'un médecin vienne le chercher. Lorsque le patient est convoqué par le médecin, il affiche l'identifiant du médecin, le rejoint dans son box et attend la fin du processus de vaccination avant de quitter la vaccinodrome.
+\medskip \par Après que le patient ait rejoint le médecin dans son box, le médecin va démarrer le processus de vaccination (usleep dans notre cas) avant de libérer le patient et attendre l'arrivée d'un nouveau patient. Il se peut qu'aucun autre patient arrive, auquel cas le médecin sera débloqué par la fermeture.
 
 \subsection{Fermeture du vaccinodrome}
 
-\begin{expl}
-  Expliquez les détails de ce que fait le programme \texttt{fermer}
-  (et seulement ce programme), y compris lorsqu'il reste des patients
-  et/ou des médecins.
-\end{expl}
+La fermeture est le seul programme à intérargir ici.
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  status & vac\_status\_t & le status actuel de vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  salle\_m & asem\_t & sémaphore représentant la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  med\_count & int & nombre de médecins dans le vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  m & int & nombre de médecins (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  vide & asem\_t & sémaphore indique si le vaccinodrome est vide (voir \texttt{vaccinodrome\_t}) \\ \hline%
+\end{tabularx}
+
+\begin{verbatim}
+status = FERME
+Si pat_count > 0 ALORS P (fermer) FINSI
+SI med_count > 0 ALORS
+    LOOP : 0 à m
+        V (salle_m)
+    FIN LOOP
+    SI med_count != 0 ALORS P(vide) FINSI
+FINSI
+clean_file()
+\end{verbatim}
+
+\medskip \par
+Lors du lancement de \texttt{fermer.c}, il faut d'abord annoncer la fermeture du vaccinodrome. Ensuite, il faut attendre que tous les patients aient quité le vaccinodrome puis attendre que le vaccinodrome soit vide. 
+\medskip \par C'est pourquoi on vérifiera s'il reste un nombre positif de patients. S'il en reste, on attendra qu'il n'en reste aucun. Sinon, on vérifiera s’il reste un nombre positif de médecins dans le vaccinodrome. S'il ne reste aucun médecin, on peut quitter normalement. Sinon, cela signifie peut-être que des médecins sont bloqués dans une attente infinie et \texttt{fermer.c} va les débloquer via le semaphore dans \texttt{LOOP}. Après cette boucle, si le nombre de médecins est différent de 0 on attend qu'ils se terminent (ce qui arrivera forcément puisqu'on vient de les débloquer) puis on peut quitter normalement.
 
 \subsection{Patients après fermeture}
 
-\begin{expl}
-  Expliquez ce qui se passe pour un patient assis dans la salle
-  d'attente après la fermeture. (Notez que le cas du patient qui
-  arrive \emph{après} la fermeture doit avoir été décrit dans la
-  section~\ref{arrivee-patient}.)
-\end{expl}
+Le patient est le seul à intérargir ici.
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  pat\_count & int & nombre de patients dans le vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  status & vac\_status\_t & le status actuel de vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  pat\_vide & asem\_t & sémaphore pour indiquer qu’il ne reste aucun patient (voir \texttt{vaccinodrome\_t}) \\ \hline%
+\end{tabularx}
+
+\begin{verbatim}
+pat_count = pat_count - 1
+SI status == FERME ET pat_count = 0 ALORS
+    V (pat_vide)
+    V (fermer
+FINSI
+\end{verbatim}
+
+\medskip \par
+A partir du moment où un patient est installé dans la salle d'attente, il doit obligatoirement quitter la vaccinodrome en étant vacciner. Ainsi, seul la fin diffère du déroulement classique puisque après avoir décrementé le nombre de patient total dans le vaccinodrome, s'il s'avère que le patient était le dernier à quitter le vaccinodrome et que le vaccinodrome est fermé, il doit prévenir les médecins qu'il ne reste plus aucun patient et qu'ils peuvent, à leur tour, quitter le vaccinodrome. Il préviendra également \texttt{fermer.c} pour lui permettre de, peut-être, débloquer des médecins.
 
 \subsection{Médecins après fermeture}
 
-\begin{expl}
-  Expliquez ce qui se passe pour un médecin après la fermeture. (Le
-  cas du médecin qui arrive \emph{après} la fermeture doit avoir été
-  décrit dans la section~\ref{arrivee-patient}.)
-\end{expl}
+Le médecin est le seul à intérargir ici.
+\bigskip \newline
+\begin{tabularx}{\linewidth}{|l|l|>{\strut}X|}
+  \hline%
+  Champ & Type & Description \\ \hline%
+  salle\_m & asem\_t & sémaphore représentant la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline% 
+  status & vac\_status\_t & le status actuel de vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  salle\_count & int & nombre de patient dans la salle d'attente (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  pat\_count & int & nombre de patients dans le vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  pat\_vide & asem\_t & sémaphore pour indiquer qu’il ne reste aucun patient (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  med\_count & int & nombre de médecins dans le vaccinodrome (voir \texttt{vaccinodrome\_t}) \\ \hline%
+  vide & asem\_t & sémaphore pour indiquer que le vaccinodrome est vide (voir \texttt{vaccinodrome\_t}) \\ \hline%
+\end{tabularx}
+
+\begin{verbatim}
+TANTQUE VRAI
+    SI status == FERME ET salle_count = 0 ALORS fin du médecin FINSI
+    P (salle_m) // patient ou fermer
+    SI status == FERME ET salle_count = 0 ALORS fin du médecin  FINSI
+    traiter_patient()
+FIN TANTQUE
+
+SI pat_count == 0 ALORS V (pat_vide) FINSI
+med_count = med_count - 1
+P (pat_vide)
+SI med_count == 0 ALORS V (vide) FINSI
+\end{verbatim}
+
+\medskip \par
+Après la fermeture, les médecins continuent de traiter les patients qui étaient déjà dans l'enceinte du vaccinodrome avant la fermeture. Ainsi, tant qu'il y a des patients dans la salle d'attente, le médecin passe le sémaphore salle\_m et traite un patient.
+\medskip \par Or, s'il n'y a plus de patients, le semaphore est bloquant et les médecins ne peuvent pas finir. C'est ici que \texttt{fermer.c} intervient, je ne vais pas revenir sur son fonctionnement ici mais \texttt{fermer.c} permet de débloquer les médecins. En toute logique, quand \texttt{fermer.c} débloque les médecins, il modifie également le statut du vaccinodrome, il ne reste plus de patient dans la salle d'attente et donc le médecin sort de la boucle \texttt{TANTQUE}.
+\medskip \par Après cela, s'il reste encore des patients (en cours de vaccination, et non dans la salle d'attente), les médecins doivent attendre. Une fois que le dernier patient a quitté le vaccinodrome, les médecins peuvent également quitter le vaccinodrome et décrémentent le compteur. Ainsi, le dernier médecin à quitter le vaccinodrome prévient \texttt{fermer.c} qu'il peut nettoyer le vaccinodrome.
+
+
+\newpage
 
 \section{Remarques sur l'implémentation}
 
-\begin{expl}
-  Placez ici toute remarque relative à vos choix d'implémentation (si
-  vous en avez). Par exemple~: si vous avez placé des temporisations
-  particulières pour vérifier que certains cas de concurrence étaient
-  gérés correctement, expliquez cela dans cette section. Toute autre
-  remarque qui aide à comprendre votre code est à placer ici.
-\end{expl}
+Tous les accès ou modifications effectuées concernant la mémoire partagée sont encadrés dans des sections critiques, sauf oubli de ma part ou exception, qui sera à ce moment là précisée dans les commentaires.
+\bigskip \par
+En ce qui concerne le choix d'un siège pour le patient et le choix d'un patient pour le médecin, j'exécute une boucle \texttt{FOR} qui itère dans mon tableau jusqu'à trouver le statut recherché. J'admet que ça n'est pas réaliste puisque ce sont toujours les premières cases du tableau qui sont utilisées. Pour palier à ce problème, on pourrait implémenter une file mais je n'ai pas souhaité l'implémenter par soucis de simplicité.
+\bigskip \par
+Concernant mon tableau \texttt{patient} et sa taille \texttt{n+m}. Je me suis décidé pour cette implémentation car d'après moi, j'aurai de toute manière été obligé d'utiliser deux tableaux, un de taille \texttt{n} pour représenter les sièges du vaccinodrome et un autre de taille \texttt{m} pour représenter les boxs des médecins. Or, cette imlémentation ne m'a pas enchanté et j'ai jugé qu'utiliser un tableau de taille \texttt{n+m} serait plus optimal.\smallskip \newline En effet, il y a au maximum \texttt{n+m} patients à l'intérieur du vaccinodrome. Ainsi, j'utilise l'énumération (voir 2.1) pour spécifier quel statut je souhaite que chaque case de mon tableau ait. En combinant cela à mes compteurs, je suis assuré de ne jamais modifier une case de manière involontaire. 
+De plus, utiliser un tableau me garantit un accès rapide aux cases souhaitées et lorsqu'un patient quitte le vaccinodrome, il me suffit de modifier le statut de la case jusqu'à ce qu'un nouveau patient vienne remplacer les données. Le médecin ira de lui même s'inscrire comme étant le médecin d'un patient et, de ce fait, il aura accès aux sémaphores ce qui assure une communication simple entre les deux protagonistes.
+\bigskip \par
+La fermeture telle que je la vois fonctionne de la manière suivante : avant de nettoyer la mémoire partagée, il faut attendre que le vaccinodrome soit vide, c'est à dire qu'il ne doit rester aucun médecin, ni patient. De la même manière, les médecins ne peuvent quitter le vaccinodrome uniquement lorsqu'il n'y a plus de patients dans le vaccinodrome. 
+\smallskip \newline C'est pour cela que, dans ma fermeture, je vérifie d'abord qu'il ne reste aucun patient (s'il en reste, j'attends) avant de vérifier qu'il ne reste aucun médecin (s'il en reste, je dois les débloquer, puis j'attends).
+\smallskip \newline Les médecins, eux, bouclent tant que le vaccinodrome est ouvert ou qu'il reste des patients à traiter, mais une fois que le dernier patient a été traité, ils attendent indéfiniemment jusqu'à ce que la fermeture les débloque. Ensuite, ils vérifient qu'il ne reste aucun patient (s'il en reste, ils attendent) puis le dernier médecin autorise la fermeture à procéder au nettoyage du vaccinodrome. 
+\smallskip \newline Ainsi, lorsque le dernier patient quitte le vaccinodrome, il débloque la fermeture et les médecins qui attendaient que tous les patients aient quitté le vaccinodrome.
+\smallskip \newline En revanche, je ne suis pas certain que l'attente des patients par les médecins soit utilisée, mais je laisse tout de même la gestion de ce cas dans mon code.
 
+\newpage 
+
+\section{Remarques sur les jeux de tests}
+
+J'ai ajouté la commande \texttt{make long} dans le makefile qui permet de lancer un nombre prédéfini de fois \texttt{make test}. Le test est vraiment long à exécuter puisque j'ai attendu 45 minutes pour 100 tests.
+
+\subsection{Machine personnelle}
+
+\bigskip Lors de l'execution sur ma machine personnelle (WSL2), j'ai rencontré 22 erreurs sur 250 tests. C'était exclusivement aux tests 190 et 200 (onze fois chacun) :
+\begin{verbatim}
+test-190.sh
+==> Échec du test 'test-190' sur 'Reste 0 patients non terminés sur 1 attendus à 9030 ms'.
+==> Voir détails dans le fichier test-190.log
+==> Exit
+
+test-200.sh
+==> Échec du test 'test-200' sur 'Reste 0 patients non terminés sur 1 attendus à 7830 ms'.
+==> Voir détails dans le fichier test-200.log
+==> Exit
+\end{verbatim}
+
+\subsection{Turing}
+
+En revanche, lors de l'exécution sur turing (qui est à privilégier j'imagine), je n'ai échoué qu'une seule fois sur 250 tests et c'était au test 110 avec l'erreur suivante :
+\begin{verbatim}
+test-110.sh
+==> Échec du test 'test-110' sur 'fermer : /dev/shm pas dans l'état initial'.
+==> Voir détails dans le fichier test-110.log
+==> Exit
+\end{verbatim}
+
+Concernant les erreurs aux tests 190 et 200, je ne les ai jamais rencontré lors de l'exécution sur turing et je ne comprends pas trop d'où pourrait provenir mon erreur.
+\smallskip \par Je n'ai aucune idée d'où a pu provenir cette erreur au test 110 et je ne sais pas non plus comment y remedier. C'est la première fois qu'elle m'apparaît, j'espère que mon code n'est pas fautif et que c'est arrivé suite à l'exécution d'un programme par une autre personne sur le serveur ssh.
+
+\newpage
 \section{Conclusion}
 
-\begin{expl}
-  Tirez les conclusions de votre projet~: limites de votre
-  implémentation, difficultés particulières, subtilités dont vous êtes
-  fiers, etc.
-\end{expl}
+Je trouve que mon implémentation comporte beaucoup de sections critiques, peut-être trop. De ce fait, j'imagine que si la capacité d'accueil et la fréquentation du vaccinodrome venait à augmenter, on pourrait rencontrer des soucis de performances. Malheureusement, je ne sais pas comment y remedier, ni même si c'est possible.
+\bigskip \par J'ai notamment rencontré des difficultés lors de l'initialisation et de l'allocation de la mémoire partagée. C'était des erreurs plutôt absurde mais cela m'a demandé du temps afin de m'en rendre compte. J'ai également eu du mal à finaliser mon implémentation puisque j'avais tout simplement oublié d'implémenter la plupart des sections critiques ce qui me faisait régulièrement échouer certains tests.
+\bigskip \par J'imagine qu'il n'y a pas tellement de possibilités d'implémentation différente car la ligne directrice est assez claire, mais mon implémentation me semble tout de même être simple et logique à la fois et j'en suis plutôt fier. Notamment mes choix concernant la structure et le tableau de la mémoire partagée. En effet, le fait de m'être servis d'une unique structure avec un unique tableau pour représenter à la fois les sièges de la salle d'attente et les boxs des médecins me semble être optimal et je pense que cela facilite la communication entre un patient et son médecin. Après avoir conversé avec certains camarades qui eux ont utilisé plusieurs tableaux voir même plusieurs structures via des \texttt{mmap} différents, j'estime que mon implémentation n'est pas mauvaise.
+\bigskip \par Dans l'objectif d'une amélioration future, il faudrait commencer par apporter toutes les modifications que vous, en tant que correcteur, jugerez nécessaire. Ensuite, si c'est effectivement réalisable, il faudrait corriger la limite mentionnée au début de la conclusion. Il pourrait surtout être intéressant d'implémenter une version plus complète comme mentionnée lors de l'introduction : plusieurs vaccinodromes, des médecins et des patients identifiés via une base de données, l'implémentation d'un pass sanitaire, ... Pour accompagner une implémentation aussi importante et rendre ce projet plus réaliste, on pourrait également réaliser une version graphique.
 
 \end{document}
