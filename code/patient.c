@@ -23,14 +23,14 @@ void patient(char *nom)
 
     // debut section critique commune : lire le statut
     CHECK(asem_wait(&(vac->edit_salle)));
-    if(vac->status == FERME) // verifie si c'est ferme : on repart 
+    int temp_s = vac->status;
+    CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
+
+    if(temp_s == FERME) // verifie si c'est ferme : on repart 
     {
-        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
         CHECK(asem_post(&(vac->salle_p))); // libère la place 
         raler("patient.c : vac ferme");
     }
-    else
-        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
 
     // debut section critique commune : entre dans le vaccinodrome
     CHECK(asem_wait(&(vac->edit_salle)));
@@ -69,7 +69,6 @@ void patient(char *nom)
     CHECK(asem_wait(&(vac->edit_salle)));
     if(vac->status == FERME && vac->med_count == 0)
     {
-        adebug(1, "erreur");
         vac->pat_count--;
         if(vac->pat_count == 0) // dernier patient
             CHECK(asem_post(&(vac->dernier))); // signale fin à fermer.c
@@ -80,7 +79,7 @@ void patient(char *nom)
     }
     else // fin section critique commune : patient a quitter le vaccinodrome
         CHECK(asem_post(&(vac->edit_salle)));
-        
+
     CHECK(asem_post(&(vac->salle_p))); // libere place sale d'attente
 
     // hors critique car impossible de modifier si statut != LIBRE
