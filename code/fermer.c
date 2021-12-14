@@ -23,6 +23,10 @@ void fermer()
 
     if(vac->pat_count > 0)
     {
+        adebug(1, "erreur");
+        if(vac->pat_count > 0 && vac->med_count == 0)
+            for(int i=0; i < vac->pat_count; i++)
+                CHECK(asem_post(&(vac->patient[i].s_patient))); // attend medecin
         CHECK(asem_post(&(vac->edit_salle))); // fin section critique
         CHECK(asem_wait(&(vac->dernier))); // dernier patient
     }

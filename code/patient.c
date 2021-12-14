@@ -64,6 +64,23 @@ void patient(char *nom)
 
     CHECK(asem_post(&(vac->salle_m))); // installe : previent les medecins 
     CHECK(asem_wait(&(vac->patient[id_patient].s_patient))); // attend medecin
+
+    // debut section critique commune : aucun medecin ?
+    CHECK(asem_wait(&(vac->edit_salle)));
+    if(vac->status == FERME && vac->med_count == 0)
+    {
+        adebug(1, "erreur");
+        vac->pat_count--;
+        if(vac->pat_count == 0) // dernier patient
+            CHECK(asem_post(&(vac->dernier))); // signale fin à fermer.c
+
+        // fin section critique commune : patient a quitter le vaccinodrome
+        CHECK(asem_post(&(vac->edit_salle)));
+        return;
+    }
+    else // fin section critique commune : patient a quitter le vaccinodrome
+        CHECK(asem_post(&(vac->edit_salle)));
+        
     CHECK(asem_post(&(vac->salle_p))); // libere place sale d'attente
 
     // hors critique car impossible de modifier si statut != LIBRE
