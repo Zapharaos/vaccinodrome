@@ -16,6 +16,7 @@ void medecin()
 
     int lg = -1; // flags fonction, lg vaudra la taille de fd apres l'appel
     vaccinodrome_t *vac = get_vaccinodrome(fd, &lg);
+    CHECK(close(fd)); // fermeture
 
     // debut section critique commune : lire le statut + entrer vaccinodrome
     CHECK(asem_wait(&(vac->edit_salle)));
@@ -100,8 +101,6 @@ void medecin()
 
     // fin section critique des medecins : medecin a quitte le vaccinodrome
     CHECK(asem_post(&(vac->medecin)));
-
-    return;
 }
 
 int main (int argc, char *argv [])

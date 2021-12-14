@@ -17,6 +17,7 @@ void ouvrir(int n, int m, int t)
 
     int lg = sizeof(vaccinodrome_t) + sizeof(patient_t)*(n+m);
     vaccinodrome_t *vac = get_vaccinodrome(fd, &lg); // ptr pour d'autres cas
+    CHECK(close(fd)); // fermeture
 
     vac->n = n; // nombre de sièges
     vac->m = m; // nombre de médecins

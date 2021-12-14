@@ -16,6 +16,7 @@ void patient(char *nom)
 
     int lg = -1; // flags fonction, lg vaudra la taille de fd apres l'appel
     vaccinodrome_t *vac = get_vaccinodrome(fd, &lg);
+    CHECK(close(fd)); // fermeture
 
     // attend d'avoir une place de libre dans la salle d'attente
     CHECK(asem_wait(&(vac->salle_p)));
