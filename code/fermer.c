@@ -22,6 +22,7 @@ void fermer()
     vac->status = FERME; // le vaccinodrome ferme
     int temp_pc = vac->pat_count;
     int temp_mc = vac->med_count;
+    int temp_m = vac->m;
 
     // fin section critique commune
     CHECK(asem_post(&(vac->edit_salle)));
@@ -30,19 +31,16 @@ void fermer()
     {
         for(int i=0; i < temp_pc; i++)
             CHECK(asem_post(&(vac->patient[i].s_patient))); // ferme patients
-        CHECK(asem_wait(&(vac->dernier))); // attend le dernier patient
+
+        // debut section critique commune : recuperer compteur, a pu changer
+        CHECK(asem_wait(&(vac->edit_salle)));
+        temp_pc = vac->pat_count;
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique
+
+        if(temp_pc != 0) // si il reste encore des medecins
+            CHECK(asem_wait(&(vac->dernier))); // attend le dernier patient
     }
-
-    // debut section critique commune : vérifier nb médecins
-    CHECK(asem_wait(&(vac->edit_salle)));
-
-    temp_mc = vac->med_count;
-    int temp_m = vac->m;
-
-    // fin section critique commune
-    CHECK(asem_post(&(vac->edit_salle)));
-
-    if(temp_mc > 0) // si il reste encore des médecins : prevenir
+    else if(temp_mc > 0) // si il reste encore des médecins : prevenir
     {
         for(int i=0; i < temp_m; i++) // pour chaque médecin
             CHECK(asem_post(&(vac->salle_m))); // prévenir de la fermeture
@@ -52,7 +50,7 @@ void fermer()
         temp_mc = vac->med_count;
         CHECK(asem_post(&(vac->edit_salle))); // fin section critique
 
-        if(vac->med_count != 0) // si il reste encore des medecins
+        if(temp_mc != 0) // si il reste encore des medecins
             CHECK(asem_wait(&(vac->vide))); // attendre medecins partent
     }
 

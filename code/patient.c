@@ -94,15 +94,17 @@ void patient(char *nom)
 
     vac->pat_count--;
     vac->patient[id_patient].status = LIBRE;
+    temp_s = vac->status;
+    int temp_pc = vac->pat_count;
 
-    if(vac->status == FERME && vac->pat_count == 0) // dernier patient
+    // fin section critique commune : patient a quitter le vaccinodrome
+    CHECK(asem_post(&(vac->edit_salle)));
+
+    if(temp_s == FERME && temp_pc == 0) // dernier patient
     {
         CHECK(asem_post(&(vac->dernier))); // signale fin à fermer.c
         CHECK(asem_post(&(vac->pat_vide))); // signale medecins de partir
     }
-
-    // fin section critique commune : patient a quitter le vaccinodrome
-    CHECK(asem_post(&(vac->edit_salle)));
 }
 
 int main (int argc, char *argv [])

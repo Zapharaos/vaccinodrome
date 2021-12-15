@@ -42,15 +42,30 @@ void medecin()
     CHECK(asem_post(&(vac->medecin))); // fin section critique des medecins
 
     int id_p; // id du patient
+    int temp_status;
+    int temp_salle_count;
 
     while(1)
     {
-        if(vac->status == FERME && vac->salle_count == 0) break;
+
+        // debut section critique commune : lire le statut + patients salle
+        CHECK(asem_wait(&(vac->edit_salle)));
+        temp_status = vac->status;
+        temp_salle_count = vac->salle_count;
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
+
+        if(temp_status == FERME && temp_salle_count == 0) break;
  
         // post par patient qui entre ou par "fermer.c" pour m medecins
         CHECK(asem_wait(&(vac->salle_m)));
 
-        if(vac->status == FERME && vac->salle_count == 0) break; // "fermer.c"
+        // debut section critique commune : lire le statut + patients salle
+        CHECK(asem_wait(&(vac->edit_salle)));
+        temp_status = vac->status;
+        temp_salle_count = vac->salle_count;
+        CHECK(asem_post(&(vac->edit_salle))); // fin section critique commune
+
+        if(temp_status == FERME && temp_salle_count == 0) break; // "fermer.c"
 
         // sinon, debut section critique commune : medecin recupere un patient
         CHECK(asem_wait(&(vac->edit_salle)));
@@ -75,7 +90,7 @@ void medecin()
         CHECK(asem_post(&(vac->patient[id_p].s_patient))); // cherche patient
         CHECK(asem_wait(&(vac->patient[id_p].s_medecin)));// attend patient box
 
-        usleep(vac->t); // vaccination
+        usleep(vac->t); // vaccination, vac->t n'est jamais modifié
 
         CHECK(asem_post(&(vac->patient[id_p].s_patient))); // libère le patient
     }
