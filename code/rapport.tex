@@ -139,9 +139,56 @@ L’Organisation Mondiale de la Santé signale l’arrivée prochaine du Covid-2
   
 \subsection{Structures de données non partagées}
 
-L'implémentation pour laquelle je me suis décidé n'implique pas d'utiliser des données non partagées. Chaque variable ou structure de données utilisée est accessible via la mémoire partagée, mis à part deux variables dont je me sers pour stocker les identifiants des médecins et des patients. J'estime que les détailler ici ne serait pas pertinent étant donné que leur utilisation est triviale.
+L'implémentation pour laquelle je me suis décidé n'implique pas d'utiliser des données non partagées. Chaque variable ou structure de données utilisée est accessible via la mémoire partagée, mis à part deux variables dont je me sers pour stocker les identifiants des médecins et des patients. J'utilise également certains variables dont je me sers de manière temporaire afin de copier des variables de la mémoire partagée et de simplifier l'aspect visuel des sections critiques. J'estime que les détailler ici ne serait pas pertinent étant donné que leur utilisation est triviale.
 
 \newpage 
+
+\section{Schémas d'exécution}
+
+\subsection{Globalement}
+
+Ce schéma montre l'ensemble des ordres d'exécution des programmes qu'il est possible de réaliser et qui sont gérés. \texttt{ouvrir} et \texttt{nettoyer} peuvent s'éxecuter indépendamment, tandis que \texttt{medecin}, \texttt{patient} et \texttt{ferme} ne peuvent être exécute uniquement après \texttt{ouvrir}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.75]{global.png}\\[1cm]
+\end{figure}
+
+\subsection{Fermer}
+Processus de fermeture en fonction des individus restant (ou non) dans le vaccinodrome.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.75]{FERMER.png}\\[1cm]
+\end{figure}
+
+\newpage
+
+\subsection{Patient}
+Cycle de vie d'un patient en fonction des cas.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.75]{PATIENT.png}\\[1cm]
+\end{figure}
+
+\newpage
+
+\subsection{Médecin}
+Cycle de vie d'un médecin en fonction des cas.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.75]{MEDECIN.png}\\[1cm]
+\end{figure}
+
+\newpage
+
+\subsection{Patient et médecin}
+Evolution de la communication entre patient et un médecin depuis l'arrivée du patient jusqu'à son départ du vaccinodrome.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.75]{COMM.png}\\[1cm]
+\end{figure}
+
+\newpage
 
 \section{Synchronisations}
 
@@ -267,6 +314,7 @@ Patient lors de l'intéraction avec le médecin :
 
 \begin{verbatim}
 P (patient[id_patient].s_patient) // attend arrive du medecin
+SI status == FERME AND med_count == 0 ALORS fin du patient FINSI
 V (salle_p) // libere place salle d'attente
 afficher_medecin()
 V (patient[id_patient].s_medecin) // previent medecin de son arrive dans le box
@@ -293,8 +341,13 @@ La fermeture est le seul programme à intérargir ici.
 
 \begin{verbatim}
 status = FERME
-Si pat_count > 0 ALORS P (fermer) FINSI
-SI med_count > 0 ALORS
+SI pat_count > 0 AND med_count == 0 ALORS
+    LOOP : 0 à pat_count
+        V (patient)
+    FIN LOOP
+    SI pat_count != 0 ALORS P(dernier) FINSI
+FINSI
+SINON SI med_count > 0 ALORS
     LOOP : 0 à m
         V (salle_m)
     FIN LOOP
@@ -305,8 +358,10 @@ clean_file()
 
 \medskip \par
 Lors du lancement de \texttt{fermer.c}, il faut d'abord annoncer la fermeture du vaccinodrome. Ensuite, il faut attendre que tous les patients aient quité le vaccinodrome puis attendre que le vaccinodrome soit vide. 
-\medskip \par C'est pourquoi on vérifiera s'il reste un nombre positif de patients. S'il en reste, on attendra qu'il n'en reste aucun. Sinon, on vérifiera s’il reste un nombre positif de médecins dans le vaccinodrome. S'il ne reste aucun médecin, on peut quitter normalement. Sinon, cela signifie peut-être que des médecins sont bloqués dans une attente infinie et \texttt{fermer.c} va les débloquer via le semaphore dans \texttt{LOOP}. Après cette boucle, si le nombre de médecins est différent de 0 on attend qu'ils se terminent (ce qui arrivera forcément puisqu'on vient de les débloquer) puis on peut quitter normalement.
+\medskip \par C'est pourquoi on vérifiera s'il reste un nombre positif de patients. S'il ne reste aucun patient, on peut quitter normalement. Sinon, cela signifie peut-être que des patients sont bloqués dans une attente infinie et \texttt{fermer.c} va les débloquer via le semaphore dans \texttt{LOOP}. Après cette boucle, si le nombre de patients est différent de 0 on attend qu'ils se terminent (ce qui arrivera forcément puisqu'on vient de les débloquer) puis on peut quitter normalement.
+\medskip \par Sinon, on vérifiera s’il reste un nombre positif de médecins dans le vaccinodrome. S'il ne reste aucun médecin, on peut quitter normalement. Sinon, cela signifie peut-être que des médecins sont bloqués dans une attente infinie et \texttt{fermer.c} va les débloquer via le semaphore dans \texttt{LOOP}. Après cette boucle, si le nombre de médecins est différent de 0 on attend qu'ils se terminent (ce qui arrivera forcément puisqu'on vient de les débloquer) puis on peut quitter normalement.
 
+\newpage 
 \subsection{Patients après fermeture}
 
 Le patient est le seul à intérargir ici.
@@ -378,7 +433,7 @@ Concernant mon tableau \texttt{patient} et sa taille \texttt{n+m}. Je me suis d�
 De plus, utiliser un tableau me garantit un accès rapide aux cases souhaitées et lorsqu'un patient quitte le vaccinodrome, il me suffit de modifier le statut de la case jusqu'à ce qu'un nouveau patient vienne remplacer les données. Le médecin ira de lui même s'inscrire comme étant le médecin d'un patient et, de ce fait, il aura accès aux sémaphores ce qui assure une communication simple entre les deux protagonistes.
 \bigskip \par
 La fermeture telle que je la vois fonctionne de la manière suivante : avant de nettoyer la mémoire partagée, il faut attendre que le vaccinodrome soit vide, c'est à dire qu'il ne doit rester aucun médecin, ni patient. De la même manière, les médecins ne peuvent quitter le vaccinodrome uniquement lorsqu'il n'y a plus de patients dans le vaccinodrome. 
-\smallskip \newline C'est pour cela que, dans ma fermeture, je vérifie d'abord qu'il ne reste aucun patient (s'il en reste, j'attends) avant de vérifier qu'il ne reste aucun médecin (s'il en reste, je dois les débloquer, puis j'attends).
+\smallskip \newline C'est pour cela que, dans ma fermeture, je vérifie d'abord s'il reste un nombre positif de patients mais aucun de médecin (s'il en reste, je dois les débloquer, puis j'attends)
 \smallskip \newline Les médecins, eux, bouclent tant que le vaccinodrome est ouvert ou qu'il reste des patients à traiter, mais une fois que le dernier patient a été traité, ils attendent indéfiniemment jusqu'à ce que la fermeture les débloque. Ensuite, ils vérifient qu'il ne reste aucun patient (s'il en reste, ils attendent) puis le dernier médecin autorise la fermeture à procéder au nettoyage du vaccinodrome. 
 \smallskip \newline Ainsi, lorsque le dernier patient quitte le vaccinodrome, il débloque la fermeture et les médecins qui attendaient que tous les patients aient quitté le vaccinodrome.
 \smallskip \newline En revanche, je ne suis pas certain que l'attente des patients par les médecins soit utilisée, mais je laisse tout de même la gestion de ce cas dans mon code.
@@ -387,11 +442,15 @@ La fermeture telle que je la vois fonctionne de la manière suivante : avant de 
 
 \section{Remarques sur les jeux de tests}
 
-J'ai ajouté la commande \texttt{make long} dans le makefile qui permet de lancer un nombre prédéfini de fois \texttt{make test}. Le test est vraiment long à exécuter puisque j'ai attendu 45 minutes pour 100 tests.
+J'ai ajouté la commande \texttt{make long} dans le makefile qui permet de lancer un nombre prédéfini de fois \texttt{make test}. J'ai également ajouté l'ajout du jeu de test 125 à la compilation de l'archive pour que vous puissez l'analyser.
+
+\subsection{Jeu de test 125}
+
+Ce test est à cheval entre le 120 et le 130. En effet, il vérifie le bon comportement du programme lorsqu'un patient entre dans un vaccinodrome ouvert mais qu'aucun médecin ne se présente avant la fermeture.
 
 \subsection{Machine personnelle}
 
-\bigskip Lors de l'execution sur ma machine personnelle (WSL2), j'ai rencontré 22 erreurs sur 250 tests. C'était exclusivement aux tests 190 et 200 (onze fois chacun) :
+\bigskip Cette section n'est présente qu'à titre informatif car c'est la compilation sur turing qui est à privilégier. \newline Lors de l'execution sur ma machine personnelle (WSL2), j'ai rencontré 22 erreurs sur 250 tests et c'était exclusivement aux tests 190 et 200 (onze fois chacun) :
 \begin{verbatim}
 test-190.sh
 ==> Échec du test 'test-190' sur 'Reste 0 patients non terminés sur 1 attendus à 9030 ms'.
@@ -404,23 +463,16 @@ test-200.sh
 ==> Exit
 \end{verbatim}
 
+J'avoue ne pas trop comprendre l'origine de cette erreur, mais étant donné que cela apparaît uniquement sur ma machine personnelle, je n'y ai pas vraiment prêté attention.
+
 \subsection{Turing}
 
-En revanche, lors de l'exécution sur turing (qui est à privilégier j'imagine), je n'ai échoué qu'une seule fois sur 250 tests et c'était au test 110 avec l'erreur suivante :
-\begin{verbatim}
-test-110.sh
-==> Échec du test 'test-110' sur 'fermer : /dev/shm pas dans l'état initial'.
-==> Voir détails dans le fichier test-110.log
-==> Exit
-\end{verbatim}
-
-Concernant les erreurs aux tests 190 et 200, je ne les ai jamais rencontré lors de l'exécution sur turing et je ne comprends pas trop d'où pourrait provenir mon erreur.
-\smallskip \par Je n'ai aucune idée d'où a pu provenir cette erreur au test 110 et je ne sais pas non plus comment y remedier. C'est la première fois qu'elle m'apparaît, j'espère que mon code n'est pas fautif et que c'est arrivé suite à l'exécution d'un programme par une autre personne sur le serveur ssh.
+Lors de l'exécution sur turing, je n'ai échoué à aucun des 250 tests que j'ai effectué.
 
 \newpage
 \section{Conclusion}
 
-Je trouve que mon implémentation comporte beaucoup de sections critiques, peut-être trop. De ce fait, j'imagine que si la capacité d'accueil et la fréquentation du vaccinodrome venait à augmenter, on pourrait rencontrer des soucis de performances. Malheureusement, je ne sais pas comment y remedier, ni même si c'est possible.
+Je trouve que mon implémentation comporte beaucoup de sections critiques, peut-être trop. De ce fait, j'imagine que si la capacité d'accueil et la fréquentation du vaccinodrome venait à augmenter, on pourrait rencontrer des soucis de performances. Malheureusement, je ne sais pas comment y remedier, ni même si c'est possible car je ne pense pas qu'il soit possible de s'en passer.
 \bigskip \par J'ai notamment rencontré des difficultés lors de l'initialisation et de l'allocation de la mémoire partagée. C'était des erreurs plutôt absurde mais cela m'a demandé du temps afin de m'en rendre compte. J'ai également eu du mal à finaliser mon implémentation puisque j'avais tout simplement oublié d'implémenter la plupart des sections critiques ce qui me faisait régulièrement échouer certains tests.
 \bigskip \par J'imagine qu'il n'y a pas tellement de possibilités d'implémentation différente car la ligne directrice est assez claire, mais mon implémentation me semble tout de même être simple et logique à la fois et j'en suis plutôt fier. Notamment mes choix concernant la structure et le tableau de la mémoire partagée. En effet, le fait de m'être servis d'une unique structure avec un unique tableau pour représenter à la fois les sièges de la salle d'attente et les boxs des médecins me semble être optimal et je pense que cela facilite la communication entre un patient et son médecin. Après avoir conversé avec certains camarades qui eux ont utilisé plusieurs tableaux voir même plusieurs structures via des \texttt{mmap} différents, j'estime que mon implémentation n'est pas mauvaise.
 \bigskip \par Dans l'objectif d'une amélioration future, il faudrait commencer par apporter toutes les modifications que vous, en tant que correcteur, jugerez nécessaire. Ensuite, si c'est effectivement réalisable, il faudrait corriger la limite mentionnée au début de la conclusion. Il pourrait surtout être intéressant d'implémenter une version plus complète comme mentionnée lors de l'introduction : plusieurs vaccinodromes, des médecins et des patients identifiés via une base de données, l'implémentation d'un pass sanitaire, ... Pour accompagner une implémentation aussi importante et rendre ce projet plus réaliste, on pourrait également réaliser une version graphique.
