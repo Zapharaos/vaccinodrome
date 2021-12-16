@@ -36,7 +36,7 @@ DEVOIR = \
 	shm.c shm.h \
 	ouvrir.c fermer.c nettoyer.c medecin.c patient.c \
 	test-125.sh \
-	rapport.pdf
+	../rapport.pdf
 
 PROGS = ouvrir fermer nettoyer medecin patient
 
